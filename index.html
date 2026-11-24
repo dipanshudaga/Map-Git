@@ -196,7 +196,7 @@
   <button class="tb" id="filtBtn" data-pop="filt"><svg class="i" aria-hidden="true"><use href="#i-filter"/></svg>Filters<span class="badge" id="filtN" style="display:none"></span></button>
   <button class="tb" id="expAll"><svg class="i" aria-hidden="true"><use href="#i-unfold"/></svg>Expand all</button>
   <span class="sep"></span>
-  <button class="tb primary" id="reload" title="Re-read the repo and mark what's new"><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg>Reload</button>
+  <button class="tb primary" id="reload" title="Read the repository again. Mark the new commits."><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg>Reload</button>
 </div>
 
 <div id="pop" class="float pop caret">
@@ -209,29 +209,29 @@
 <div id="filt" class="float pop caret">
   <h3>Which branches to show</h3>
   <div class="frow"><label>Load up to<small>Newest first</small></label><div class="seg" id="fMax"></div></div>
-  <div class="frow"><label>Hide stale<small>No commits for…</small></label><div class="seg" id="fStale"></div></div>
-  <div class="frow"><label>Hide fully merged<small>Already inside the main branch</small></label><button class="switch" id="fMerged" aria-label="Hide fully merged"></button></div>
-  <div class="frow"><label>Only with conflicts<small>Would clash with the main branch</small></label><button class="switch" id="fConf" aria-label="Only conflicting"></button></div>
+  <div class="frow"><label>Hide stale<small>No commits for</small></label><div class="seg" id="fStale"></div></div>
+  <div class="frow"><label>Hide fully merged<small>Already in the main branch</small></label><button class="switch" id="fMerged" aria-label="Hide fully merged"></button></div>
+  <div class="frow"><label>Only with conflicts<small>Clash with the main branch</small></label><button class="switch" id="fConf" aria-label="Only conflicting"></button></div>
   <p id="fSummary" class="note"></p>
 </div>
 
 <div id="help" class="float">
   <h3>How to read this board</h3>
   <ul>
-    <li>Each <b>column is a branch</b>. Its colored title sits right above its newest commit. Green is the main branch.</li>
-    <li>Each <b>card is a commit</b>: a saved snapshot of the code. <b>Newer is higher.</b></li>
-    <li>A white card with a colored border above a branch is its <b>pull request</b>.</li>
-    <li><span class="sw d"></span>dashed line: where a branch <b>split off</b> main.</li>
-    <li><span class="sw"></span>solid line into main: a <b>merge</b>.</li>
-    <li><b>Drag</b> a card to move it. Drag a branch title to change the order of the columns. <b>Tidy up</b> <svg class="i" aria-hidden="true"><use href="#i-tidy"/></svg> puts everything back.</li>
-    <li>Click anything for a plain explanation and the exact Git commands.</li>
-    <li>Hover the <svg class="i" aria-hidden="true"><use href="#i-info"/></svg> icon next to a word to learn what it means.</li>
+    <li>Each <b>column is a branch</b>. The colored title is above the newest commit. Green is the main branch.</li>
+    <li>Each <b>card is a commit</b>. A commit is a saved copy of the code. <b>Newer commits are higher.</b></li>
+    <li>A white card with a colored border above a branch is a <b>pull request</b>.</li>
+    <li><span class="sw d"></span>A dashed line shows where a branch <b>split off</b> from main.</li>
+    <li><span class="sw"></span>A solid line into main shows a <b>merge</b>.</li>
+    <li><b>Drag</b> a card to move it. Drag a branch title to change the order of the columns. Select <b>Tidy up</b> <svg class="i" aria-hidden="true"><use href="#i-tidy"/></svg> to put all items back.</li>
+    <li>Click an item. Map Git shows an explanation and the Git commands for it.</li>
+    <li>Hold the pointer over the <svg class="i" aria-hidden="true"><use href="#i-info"/></svg> icon next to a word. Map Git shows the meaning of the word.</li>
   </ul>
 </div>
 
 <aside id="side" class="float"></aside>
 <div id="tip" role="tooltip"></div>
-<div id="zoom" class="float"><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg></button><button class="tb icon" id="tTidy" title="Tidy up: put every card back (T)" aria-label="Tidy up"><svg class="i lg" aria-hidden="true"><use href="#i-tidy"/></svg></button><span class="sep"></span><button class="tb icon" id="zo" aria-label="Zoom out"><svg class="i lg" aria-hidden="true"><use href="#i-minus"/></svg></button><span id="zl">100%</span><button class="tb icon" id="zi" aria-label="Zoom in"><svg class="i lg" aria-hidden="true"><use href="#i-plus"/></svg></button><span class="sep"></span><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Git terms"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg></button></div>
+<div id="zoom" class="float"><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg></button><button class="tb icon" id="tTidy" title="Tidy up: put all items back (T)" aria-label="Tidy up"><svg class="i lg" aria-hidden="true"><use href="#i-tidy"/></svg></button><span class="sep"></span><button class="tb icon" id="zo" aria-label="Zoom out"><svg class="i lg" aria-hidden="true"><use href="#i-minus"/></svg></button><span id="zl">100%</span><button class="tb icon" id="zi" aria-label="Zoom in"><svg class="i lg" aria-hidden="true"><use href="#i-plus"/></svg></button><span class="sep"></span><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Git terms"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg></button></div>
 <div id="toast"></div>
 
 <script>
@@ -244,21 +244,21 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const ico = (n, c = '') => `<svg class="i${c ? ' ' + c : ''}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 // Plain-language explanations. An "i" icon next to a term opens one of these.
 const TERMS = {
-  commit: ['Commit', 'A saved snapshot of the code, with a message and an author. Each card on the map is one commit.'],
-  branch: ['Branch', 'A separate line of work. You can try something on a branch while the main code stays safe. Each colored column is a branch.'],
-  main: ['Main branch', 'The branch the project is built on, usually named main. It holds the version everyone agrees is the real one. Finished work is merged into it.'],
-  merge: ['Merge', 'Joining the work of one branch into another, usually into main.'],
+  commit: ['Commit', 'A saved copy of the code, with a message and an author. Each card on the map is one commit.'],
+  branch: ['Branch', 'A separate line of work. You can try a change on a branch while the main code stays safe. Each colored column is a branch.'],
+  main: ['Main branch', 'The branch that the project is built on. It is usually named main. It holds the version that everyone accepts. Finished work is merged into it.'],
+  merge: ['Merge', 'To join the work of one branch into another branch. Usually, this is a merge into main.'],
   split: ['Split point', 'The commit where a branch started from main.'],
-  parent: ['Built on', 'The commit that came right before this one. Follow these links backwards to walk through the history.'],
-  hash: ['ID', 'A short code that names one commit. The first 7 characters are enough to find it.'],
-  pr: ['Pull request', 'A request to merge a branch into main. Other people look at the work and talk about it first.'],
-  conflict: ['Merge conflict', 'Two branches changed the same lines. Git cannot choose, so a person must.'],
-  ahead: ['Ahead', 'The commits this branch has that main does not. This is the work waiting to be merged.'],
-  behind: ['Behind', 'The commits main got after this branch split off. Bring them into the branch to stay up to date.'],
-  merged: ['Fully merged', 'All the work of this branch is already in main. It is safe to delete.'],
-  stale: ['Stale', 'A branch that nobody has changed for a long time.'],
-  ci: ['CI checks', 'Automatic checks, such as tests, that run on a commit. Green means they passed.'],
-  tag: ['Tag', 'A permanent name for one exact commit, usually a release such as v1.0.'],
+  parent: ['Built on', 'The commit that comes before this commit. Follow these links back to see the history.'],
+  hash: ['ID', 'A short code that identifies one commit. The first 7 characters are sufficient to find it.'],
+  pr: ['Pull request', 'A request to merge a branch into main. Other people review the work and discuss it first.'],
+  conflict: ['Merge conflict', 'Two branches changed the same lines. Git cannot choose between them. A person must choose.'],
+  ahead: ['Ahead', 'The commits that this branch has and main does not have. This work waits to be merged.'],
+  behind: ['Behind', 'The commits that main received after this branch split off. Merge them into the branch to make it current.'],
+  merged: ['Fully merged', 'All the work of this branch is already in main. You can delete the branch.'],
+  stale: ['Stale', 'A branch that nobody changed for a long time.'],
+  ci: ['CI checks', 'Automatic checks, such as tests, that run on a commit. A green mark shows that the checks passed.'],
+  tag: ['Tag', 'A permanent name for one commit. Usually, a tag marks a release, such as v1.0.'],
   forked: ['Forked from', 'The commit on main where this branch started.']
 };
 const info = k => `<button class="tipbtn" data-term="${k}" aria-label="What is ${TERMS[k][0].toLowerCase()}?">${ico('info')}</button>`;
@@ -281,7 +281,7 @@ const avColor = n => AV[[...n].reduce((a, c) => a + c.charCodeAt(0), 0) % AV.len
 const initials = n => (n.match(/\b\w/g) || ['?'])[0].toUpperCase();
 const PRS = { OPEN: ['#15803d', '#dcfce7', 'Open'], DRAFT: ['#57606a', '#eaeef2', 'Draft'], MERGED: ['#475569', '#e2e8f0', 'Merged'], CLOSED: ['#cf222e', '#ffe4e6', 'Closed'] };
 const prState = pr => pr.draft && pr.state === 'OPEN' ? 'DRAFT' : pr.state;
-const CI = { success: ['check', 'Passing', 'ok'], failure: ['x', 'Failing', 'bad'], pending: ['dots', 'Running', 'warn'] };
+const CI = { success: ['check', 'Passed', 'ok'], failure: ['x', 'Failed', 'bad'], pending: ['dots', 'Running', 'warn'] };
 const ciDot = ci => ci ? `<span class="ci ${ci.state}" title="CI: ${CI[ci.state][1].toLowerCase()}">${ico(CI[ci.state][0], 'xs')}</span>` : '';
 const DAY = 86400, nowS = () => Date.now() / 1000;
 const ago = ct => { const d = Math.max(0, (nowS() - ct) / DAY); if (d < 1) return 'today'; if (d < 2) return 'yesterday'; if (d < 31) return Math.floor(d) + ' days ago'; if (d < 365) return Math.round(d / 30) + ' months ago'; return (d / 365).toFixed(1) + ' years ago'; };
@@ -291,7 +291,7 @@ const ageDays = ln => ln.commits.length ? (nowS() - ln.commits[0].ct) / DAY : 0;
 let view = { x: 120, y: 100, k: 1 }, data = null, repos = [], cur = store.get('gc-repo', null), L = null, selKey = null;
 let laneOrder = [];  // user's column order (names), set by dragging a branch title
 let expanded = new Set(), offs = {}, flt = { max: 25, stale: 0, merged: false, conf: false, ...store.get('gc-filters', {}) };
-const expKey = () => 'gc-exp-' + cur, offKey = () => 'gc-off-' + cur, ordKey = () => 'gc-order-' + cur;
+const expKey = () => 'gc-exp-' + cur, offKey = () => 'gc-off2-' + cur, ordKey = () => 'gc-order-' + cur;
 
 // ---------- layout (pure function of data + filters + expanded) ----------
 function layout() {
@@ -449,19 +449,19 @@ function draw(animate = true, anchorKey = null, mutate = null) {
   for (const ln of L.lanes) {
     const cf = ln.conflict, st = cf && cf.state;
     let chips = ln.is_base ? '<span class="chip">main branch</span>' : ln.ahead === 0 ? `<span class="chip">${ico('check', 'xs')}Fully merged</span>` : `<span class="chip">${ico('arrow-up', 'xs')}${ln.ahead}</span>` + (ln.behind ? `<span class="chip">${ico('arrow-down', 'xs')}${ln.behind}</span>` : '');
-    if (!ln.is_base && ln.ahead) chips += st === 'conflict' ? `<span class="chip bad">${ico('alert', 'xs')}Conflicts</span>` : st === 'possible' ? `<span class="chip warn">${ico('alert', 'xs')}May conflict</span>` : st === 'clean' ? `<span class="chip ok">${ico('check', 'xs')}Clean</span>` : '';
+    if (!ln.is_base && ln.ahead) chips += st === 'conflict' ? `<span class="chip bad">${ico('alert', 'xs')}Conflict</span>` : st === 'possible' ? `<span class="chip warn">${ico('alert', 'xs')}May conflict</span>` : st === 'clean' ? `<span class="chip ok">${ico('check', 'xs')}Clean</span>` : '';
     if (ln.ci) chips += `<span class="chip ${CI[ln.ci.state][2]}">${ico(CI[ln.ci.state][0], 'xs')}CI</span>`;
     if (!ln.is_base && ageDays(ln) > 60) chips += `<span class="chip">${ico('clock', 'xs')}${Math.round(ageDays(ln) / 30)}mo</span>`;
     mk(ln.headItem, `head${ageDays(ln) > 180 && !ln.is_base ? ' stale' : ''}`, `<div class="n">${ico('branch')}<span title="${esc(ln.name)}">${esc(ln.name)}</span></div><div class="sub">${chips}</div><div class="when">${ln.commits.length ? (ln.is_base ? 'Latest ' : 'Updated ') + esc(fmtDate(ln.commits[0].date)) : ''}</div>`).style.background = ln.color;
     if (ln.prItem) {
       const pr = ln.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN;
-      const m = pr.state !== 'OPEN' ? '' : st === 'conflict' || pr.mergeable === 'CONFLICTING' ? '<span class="pill" style="background:var(--badbg);color:var(--bad)">' + ico('alert', 'xs') + 'Conflicts</span>' : st === 'possible' ? '<span class="pill" style="background:var(--warnbg);color:var(--warn)">' + ico('alert', 'xs') + 'May conflict</span>' : '<span class="pill" style="background:var(--okbg);color:var(--ok)">' + ico('check', 'xs') + 'Can merge</span>';
+      const m = pr.state !== 'OPEN' ? '' : st === 'conflict' || pr.mergeable === 'CONFLICTING' ? '<span class="pill" style="background:var(--badbg);color:var(--bad)">' + ico('alert', 'xs') + 'Conflict</span>' : st === 'possible' ? '<span class="pill" style="background:var(--warnbg);color:var(--warn)">' + ico('alert', 'xs') + 'May conflict</span>' : '<span class="pill" style="background:var(--okbg);color:var(--ok)">' + ico('check', 'xs') + 'Can merge</span>';
       mk(ln.prItem, 'pr', `<div class="t"><span class="pill" style="background:${col[1]};color:${col[0]}">${ico('pr', 'xs')}${col[2]}</span><span style="color:var(--muted)">#${pr.number}</span>${ciDot(ln.ci)}<span style="margin-left:auto">${m}</span></div><div class="m">${esc(pr.title)}</div>${pr.created ? `<div class="d">Opened ${esc(fmtDate(pr.created))}</div>` : ''}`).style.borderColor = col[0];
     }
   }
   for (const it of Object.values(L.items)) if (it.kind === 'card') {
     const c = it.c, ln = it.ln, merge = c.parents.length > 1, fork = ln.is_base && L.forkOf[c.hash];
-    const tag = merge ? `<span class="tag" style="color:${ln.color}">MERGE</span>` : fork ? `<span class="tag" style="color:#475569" title="${esc(fork.join(', '))} last shared history with this line here">SPLIT</span>` : '';
+    const tag = merge ? `<span class="tag" style="color:${ln.color}">MERGE</span>` : fork ? `<span class="tag" style="color:#475569" title="${esc(fork.join(', '))} started from this commit">SPLIT</span>` : '';
     const d = mk(it, `card${merge ? ' merge' : ''}${fresh.has(c.hash) ? ' fresh' : ''}`,
       `${tagsHtml(c.hash)}<div class="r1"><span class="h" style="color:${ln.color}">${esc(c.short)}</span><span>${it === ln.tip ? ciDot(ln.ci) : ''}${esc(fmtDate(c.date))}</span></div><div class="m">${esc(c.msg)}</div>
        <div class="a"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b>${tag}</div>`);
@@ -566,17 +566,17 @@ const fileList = (files, clash = []) => files.length ? `<ul class="files">${file
 function checksSection(ci) {
   if (!ci || !ci.checks) return '';
   const c = CI[ci.state], bad = ci.checks.filter(k => k.state === 'failure').length;
-  return `<h4>Checks (CI)${info('ci')}</h4><div class="callout ${c[2]}" style="margin:0 0 8px"><b class="t">${ico(c[0])}${ci.state === 'failure' ? bad + ' failing' : c[1]}</b>${ci.state === 'failure' ? 'Automated tests or builds failed on the newest commit. Fix before merging.' : ci.state === 'pending' ? 'Checks are still running on the newest commit.' : 'All automated checks passed on the newest commit.'}</div>`
+  return `<h4>Checks (CI)${info('ci')}</h4><div class="callout ${c[2]}" style="margin:0 0 8px"><b class="t">${ico(c[0])}${ci.state === 'failure' ? bad + ' failed' : c[1]}</b>${ci.state === 'failure' ? 'Automatic tests or builds failed on the newest commit. Fix the problem before you merge.' : ci.state === 'pending' ? 'The checks still run on the newest commit.' : 'All automatic checks passed on the newest commit.'}</div>`
     + (ci.checks.length ? `<ul class="checks">${ci.checks.map(k => `<li>${ciDot({ state: k.state })}${k.url ? `<a href="${esc(k.url)}" target="_blank" rel="noopener">${esc(k.name)}${ico('external', 'xs')}</a>` : esc(k.name)}</li>`).join('')}</ul>` : '');
 }
 function conflictCallout(ln, list = true) {
   const cf = ln.conflict, base = data.base; if (!cf || ln.is_base) return '';
   const n = cf.files.length;
-  if (cf.state === 'merged') return `<div class="callout ok"><b class="t">${ico('check')}Fully merged${info('merged')}</b>Everything on this branch is already in <b>${esc(base)}</b>. It's safe to delete.</div>`;
-  if (cf.state === 'conflict') return `<div class="callout bad"><b class="t">${ico('alert')}Merge conflict${n ? ` in ${n} file${n > 1 ? 's' : ''}` : ''}${info('conflict')}</b>Both <b>${esc(ln.name)}</b> and <b>${esc(base)}</b> changed the same lines${cf.source === 'pr' ? ' (GitHub says this PR can\'t be merged as-is)' : ''}. Git can't pick a winner, so a human must choose, usually the branch's author.</div>${n && list ? `<h4>Conflicting files</h4>${fileList(cf.files, cf.files)}` : ''}`;
-  if (cf.state === 'possible') return `<div class="callout warn"><b class="t">${ico('alert')}May conflict${info('conflict')}</b>${n} file${n > 1 ? 's were' : ' was'} changed on <b>both</b> sides. They only clash if the exact same lines changed, and that can't be checked without cloning.</div>${list ? `<h4>Files changed on both sides</h4>${fileList(cf.files, cf.files)}` : ''}`;
-  if (cf.state === 'clean') return `<div class="callout ok"><b class="t">${ico('check')}Merges cleanly</b>${ln.behind ? `<b>${esc(base)}</b> moved on, but in different places from this branch.` : `<b>${esc(base)}</b> hasn't changed since this branch split off.`}</div>`;
-  return `<div class="callout info"><b class="t">Conflict check unavailable</b>Not enough GitHub requests are left to check it. Run gh auth login in your terminal to raise the limit.</div>`;
+  if (cf.state === 'merged') return `<div class="callout ok"><b class="t">${ico('check')}Fully merged${info('merged')}</b>All commits of this branch are already in <b>${esc(base)}</b>. You can delete the branch.</div>`;
+  if (cf.state === 'conflict') return `<div class="callout bad"><b class="t">${ico('alert')}Merge conflict${n ? ` in ${n} file${n > 1 ? 's' : ''}` : ''}${info('conflict')}</b>Both <b>${esc(ln.name)}</b> and <b>${esc(base)}</b> changed the same lines${cf.source === 'pr' ? ' (GitHub reports that this pull request cannot be merged)' : ''}. Git cannot choose between them. A person must choose, usually the author of the branch.</div>${n && list ? `<h4>Conflicting files</h4>${fileList(cf.files, cf.files)}` : ''}`;
+  if (cf.state === 'possible') return `<div class="callout warn"><b class="t">${ico('alert')}May conflict${info('conflict')}</b>${n} file${n > 1 ? 's' : ''} changed on <b>both</b> sides. The files clash only if the same lines changed. Map Git cannot check this without a clone.</div>${list ? `<h4>Files changed on both sides</h4>${fileList(cf.files, cf.files)}` : ''}`;
+  if (cf.state === 'clean') return `<div class="callout ok"><b class="t">${ico('check')}Merges cleanly</b>${ln.behind ? `<b>${esc(base)}</b> has new changes, but not in the same places as this branch.` : `<b>${esc(base)}</b> did not change after this branch split off.`}</div>`;
+  return `<div class="callout info"><b class="t">Conflict check not available</b>Not enough GitHub requests remain for this check. To raise the limit, run "gh auth login" in your terminal.</div>`;
 }
 function inspect(key) {
   const it = L && L.items[key], s = $('side'); if (!it) return;
@@ -586,37 +586,37 @@ function inspect(key) {
   if (it.kind === 'card') {
     const c = it.c, merge = c.parents.length > 1, fork = ln.is_base && L.forkOf[c.hash];
     const parents = c.parents.map(p => L.at[p] ? `<a class="link" data-goto="${esc(p)}"><code>${esc(L.at[p].c.short)}</code></a>` : `<code>${esc(p.slice(0, 7))}</code>`).join(' + ');
-    let why = merge ? `<div class="callout info"><b class="t">This is a merge commit${info('merge')}</b>It joins two lines of work (${parents}) into <b>${esc(ln.name)}</b>. If both sides had changed the same lines, Git would have stopped and asked a human to resolve a <b>conflict</b>.</div>`
-      : `<div class="callout info"><b class="t">A saved snapshot</b>${c.parents.length ? `Built on top of ${parents}. Following these links backwards walks the project's history.` : 'This is the very first commit. Everything else was built on it.'}</div>`;
-    if (fork) why += `<div class="callout info"><b class="t">Split point${info('split')}</b>${fork.map(esc).join(', ')} and <b>${esc(ln.name)}</b> last shared history here. Anything added to <b>${esc(ln.name)}</b> after this is invisible to that branch until it merges or rebases.</div>`;
+    let why = merge ? `<div class="callout info"><b class="t">This is a merge commit${info('merge')}</b>It joins two lines of work (${parents}) into <b>${esc(ln.name)}</b>. If both sides changed the same lines, Git stops. Then a person must resolve the <b>conflict</b>.</div>`
+      : `<div class="callout info"><b class="t">A saved copy of the code</b>${c.parents.length ? `This commit comes after ${parents}. Follow the links back to see the history of the project.` : 'This is the first commit. All other commits are built on it.'}</div>`;
+    if (fork) why += `<div class="callout info"><b class="t">Split point${info('split')}</b>${fork.map(esc).join(', ')} started from <b>${esc(ln.name)}</b> at this commit. New commits on <b>${esc(ln.name)}</b> do not appear in ${fork.length > 1 ? 'those branches' : 'that branch'} until a merge or a rebase.</div>`;
     const tg = (data.tags || {})[c.hash];
-    if (tg) why += `<div class="callout info"><b class="t">${ico('tag')}${tg.map(esc).join(', ')}${info('tag')}</b>A tag is a permanent name for one exact commit, usually a release. Unlike a branch, it never moves.</div>`;
+    if (tg) why += `<div class="callout info"><b class="t">${ico('tag')}${tg.map(esc).join(', ')}${info('tag')}</b>A tag is a permanent name for one commit. Usually, a tag marks a release. A tag never moves. A branch moves.</div>`;
     band = band_(ln.color, 'Commit' + info('commit'), c.msg);
     body = `<dl class="kv">${kvRow('Branch', laneChip(ln), ln.is_base ? 'main' : 'branch')}${kvRow('Author', `<span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span>${esc(c.author)}`)}${kvRow('When', `${esc(fmtDate(c.date))} <span style="color:var(--muted)">· ${ago(c.ct)}</span>`)}${kvRow('Built on', parents || '-', 'parent')}${kvRow('ID', `<code>${esc(c.short)}</code>`, 'hash')}</dl>${why}
-      ${it === ln.tip ? checksSection(ln.ci) : ''}<h4>Try it</h4>${cmd('git show ' + c.short)}<div class="cmdnote">See exactly what this commit changed.</div>${cmd('git checkout ' + c.short)}<div class="cmdnote">Look around the project as it was at this moment.</div>`;
+      ${it === ln.tip ? checksSection(ln.ci) : ''}<h4>Try it</h4>${cmd('git show ' + c.short)}<div class="cmdnote">Show the changes in this commit.</div>${cmd('git checkout ' + c.short)}<div class="cmdnote">Show the project as it was at this commit.</div>`;
   } else if (it.kind === 'pr') {
     const pr = it.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN, bl = L.lanes[0];
     band = band_(col[0], `Pull request #${pr.number}` + info('pr'), pr.title);
     const rv = { APPROVED: ['Approved', 'ok'], CHANGES_REQUESTED: ['Changes requested', 'bad'], REVIEW_REQUIRED: ['Review needed', 'warn'] }[pr.review];
     body = `<dl class="kv">${kvRow('Status', `<span class="pill" style="background:${col[1]};color:${col[0]}">${col[2]}</span>`)}${kvRow('Author', esc(pr.author || '?'))}${kvRow('From', laneChip(ln))}${kvRow('Into', `<span class="pill" style="background:${tint(BASE_COLOR, .16)};color:${BASE_COLOR}">${ico('branch', 'xs')}${esc(pr.base || base)}</span>`)}${rv ? kvRow('Review', `<span class="pill" style="background:var(--${rv[1]}bg);color:var(--${rv[1] === 'ok' ? 'ok' : rv[1] === 'bad' ? 'bad' : 'warn'})">${rv[0]}</span>`) : ''}${pr.created ? kvRow('Opened', ago(Date.parse(pr.created) / 1000)) : ''}</dl>
-      <div class="callout info"><b class="t">What's a pull request?</b>A request to merge this branch into <b>${esc(pr.base || base)}</b>, with a place to discuss and review the changes first.</div>
+      <div class="callout info"><b class="t">What is a pull request?</b>A request to merge this branch into <b>${esc(pr.base || base)}</b>. Other people review and discuss the changes first.</div>
       ${pr.state === 'OPEN' ? conflictCallout(ln) : ''}${checksSection(ln.ci)}${pr.url ? `<h4>On GitHub</h4><a class="link" href="${esc(pr.url)}" target="_blank" rel="noopener">Open pull request ${ico('external', 'xs')}</a>` : ''}`;
   } else {
     const cf = ln.conflict, tot = ln.ahead + ln.behind;
     band = band_(ln.color, (ln.is_base ? 'Main branch' : 'Branch') + info(ln.is_base ? 'main' : 'branch'), ln.name);
     let why;
-    if (ln.is_base) why = `<div class="callout info"><b class="t">The main branch</b>Finished work from other branches gets merged into <b>${esc(ln.name)}</b>. Click any other branch to see how it compares.</div>`;
+    if (ln.is_base) why = `<div class="callout info"><b class="t">The main branch</b>Finished work from other branches is merged into <b>${esc(ln.name)}</b>. Click a branch to compare it with <b>${esc(ln.name)}</b>.</div>`;
     else {
       const p = [];
-      p.push(ln.ahead ? `<b>${ico('arrow-up', 'xs')} ${ln.ahead} ahead:</b> ${ln.ahead} commit${ln.ahead > 1 ? 's' : ''} that <b>${esc(base)}</b> doesn't have yet. That's the work waiting to be merged.` : '');
-      p.push(ln.behind ? `<b>${ico('arrow-down', 'xs')} ${ln.behind} behind:</b> <b>${esc(base)}</b> got ${ln.behind} new commit${ln.behind > 1 ? 's' : ''} since this branch split off. Pull them in to stay up to date.` : '');
-      why = `<div class="callout info">${p.filter(Boolean).join('<br><br>') || 'Identical to ' + esc(base)}</div>`;
+      p.push(ln.ahead ? `<b>${ico('arrow-up', 'xs')} ${ln.ahead} ahead:</b> ${ln.ahead} commit${ln.ahead > 1 ? 's' : ''} that <b>${esc(base)}</b> does not have. This work waits to be merged.` : '');
+      p.push(ln.behind ? `<b>${ico('arrow-down', 'xs')} ${ln.behind} behind:</b> <b>${esc(base)}</b> received ${ln.behind} new commit${ln.behind > 1 ? 's' : ''} after this branch split off. Merge them into this branch to make it current.` : '');
+      why = `<div class="callout info">${p.filter(Boolean).join('<br><br>') || 'This branch is the same as ' + esc(base)}</div>`;
     }
     const mbc = ln.mbm && L.at[ln.mbm], sh = x => esc(String(x).slice(0, 7));
-    const forkRow = ln.is_base ? '' : kvRow('Forked from', mbc ? `<a class="link" data-goto="${esc(ln.mbm)}"><code>${sh(mbc.c.hash)}</code></a> on ${esc(base)} <span style="color:var(--muted)">${esc(fmtDate(mbc.c.date))}</span>` : (ln.mbm || ln.mb) ? `<code>${sh(ln.mbm || ln.mb)}</code> <span style="color:var(--muted)">older than the loaded history, so no line is drawn</span>` : '<span style="color:var(--muted)">unknown</span>', 'forked');
-    const stale = !ln.is_base && ageDays(ln) > 30 ? `<div class="callout warn"><b class="t">${ico('clock')}Stale${info('stale')}</b>Last commit ${ago(ln.commits[0].ct)}. If it's abandoned or merged, consider deleting it.</div>` : '';
-    const filesHtml = cf && cf.changed.length ? `<h4>Files changed on this branch (${cf.changed.length})</h4><div class="cmdnote" style="margin:0 0 8px">${cf.files.length ? '<b style="color:var(--bad)">Red</b> clashes with ' + esc(data.base) + '. ' : ''}</div>${fileList(cf.changed, cf.files)}` : '';
-    const cmds = ln.is_base ? '' : `<h4>Try it</h4>${ln.ahead ? cmd(`git checkout ${base} && git merge ${ln.name}`) + '<div class="cmdnote">Merge this branch into ' + esc(base) + '.</div>' : ''}${ln.behind ? cmd(`git checkout ${ln.name} && git merge ${base}`) + '<div class="cmdnote">Bring this branch up to date. This is where you\'d resolve conflicts.</div>' : ''}${cmd(`git log ${base}..${ln.name} --oneline`)}<div class="cmdnote">List the commits only this branch has.</div>`;
+    const forkRow = ln.is_base ? '' : kvRow('Forked from', mbc ? `<a class="link" data-goto="${esc(ln.mbm)}"><code>${sh(mbc.c.hash)}</code></a> on ${esc(base)} <span style="color:var(--muted)">${esc(fmtDate(mbc.c.date))}</span>` : (ln.mbm || ln.mb) ? `<code>${sh(ln.mbm || ln.mb)}</code> <span style="color:var(--muted)">older than the loaded history. Map Git draws no line.</span>` : '<span style="color:var(--muted)">unknown</span>', 'forked');
+    const stale = !ln.is_base && ageDays(ln) > 30 ? `<div class="callout warn"><b class="t">${ico('clock')}Stale${info('stale')}</b>The last commit is from ${ago(ln.commits[0].ct)}. If nobody uses this branch, delete it.</div>` : '';
+    const filesHtml = cf && cf.changed.length ? `<h4>Files changed on this branch (${cf.changed.length})</h4><div class="cmdnote" style="margin:0 0 8px">${cf.files.length ? '<b style="color:var(--bad)">Red</b> files also changed on ' + esc(data.base) + '. ' : ''}</div>${fileList(cf.changed, cf.files)}` : '';
+    const cmds = ln.is_base ? '' : `<h4>Try it</h4>${ln.ahead ? cmd(`git checkout ${base} && git merge ${ln.name}`) + '<div class="cmdnote">Merge this branch into ' + esc(base) + '.</div>' : ''}${ln.behind ? cmd(`git checkout ${ln.name} && git merge ${base}`) + '<div class="cmdnote">Merge the main branch into this branch. Resolve conflicts here.</div>' : ''}${cmd(`git log ${base}..${ln.name} --oneline`)}<div class="cmdnote">List the commits that only this branch has.</div>`;
     body = `${ln.is_base ? '' : `<div class="stats"><div class="stat"><b style="color:${ln.color}">${ln.ahead}</b><span>commits ahead${info('ahead')}</span></div><div class="stat"><b>${ln.behind}</b><span>commits behind${info('behind')}</span></div></div>${tot ? `<div class="bar"><i style="width:${ln.ahead / tot * 100}%;background:${ln.color}"></i><i style="flex:1;background:${BASE_COLOR};opacity:.45"></i></div>` : ''}`}
       <dl class="kv">${forkRow}${''}${ln.commits.length ? kvRow('Updated', ago(ln.commits[0].ct)) : ''}${ln.pr ? kvRow('PR', `<a class="link" data-key="pr:${esc(ln.name)}">#${ln.pr.number}</a> <span class="pill" style="background:${(PRS[prState(ln.pr)] || PRS.OPEN)[1]};color:${(PRS[prState(ln.pr)] || PRS.OPEN)[0]}">${(PRS[prState(ln.pr)] || PRS.OPEN)[2]}</span>`, 'pr') : ''}</dl>
       ${why}${stale}${conflictCallout(ln, false)}${checksSection(ln.ci)}${filesHtml}${cmds}`;
@@ -678,7 +678,7 @@ const syncFilters = () => {
   $('fMerged').classList.toggle('on', flt.merged); $('fConf').classList.toggle('on', flt.conf);
   const n = (flt.stale ? 1 : 0) + (flt.merged ? 1 : 0) + (flt.conf ? 1 : 0) + (flt.max !== 25 ? 1 : 0);
   $('filtN').style.display = n ? '' : 'none'; $('filtN').textContent = n;
-  if (data) { const total = data.lanes.length - 1, shown = L ? L.lanes.length - 1 : total; $('fSummary').textContent = `Showing ${shown} of ${total} loaded branches` + (data.skipped ? ` (${data.skipped} older ones not loaded, so raise "Load up to")` : '') + (!authed() && flt.max > 12 ? ' Without a GitHub sign-in, up to 12 branches are loaded. Run gh auth login in your terminal for more.' : ''); }
+  if (data) { const total = data.lanes.length - 1, shown = L ? L.lanes.length - 1 : total; $('fSummary').textContent = `${shown} of ${total} loaded branches are visible.` + (data.skipped ? ` ${data.skipped} older branches are not loaded. Increase "Load up to" to load them.` : '') + (!authed() && flt.max > 12 ? ' Without a GitHub login, Map Git loads 12 branches at most. To load more, run "gh auth login" in your terminal.' : ''); }
 };
 const applyFilters = () => { store.set('gc-filters', flt); if (data) { draw(); syncFilters(); updateStatus(); } };
 seg('fMax', [[10, '10'], [25, '25'], [50, '50'], [100, '100']], 'max', () => { syncFilters(); openRepo(false); });
@@ -721,7 +721,7 @@ const fit = () => {
 const goNewest = () => { const b = bounds(); view.k = Math.max(.8, Math.min(1, (vp.clientWidth - 150) / (b.x1 - b.x0))); view.x = 96 - b.x0 * view.k; view.y = 136 - b.y0 * view.k; applyView(); };
 const zoomAt = (cx, cy, k) => { k = Math.min(2.5, Math.max(.08, k)); view.x = cx - (cx - view.x) * (k / view.k); view.y = cy - (cy - view.y) * (k / view.k); view.k = k; applyView(); };
 $('tFit').onclick = fit;
-$('tTidy').onclick = () => { draw(true, null, () => { offs = {}; laneOrder = []; store.set(offKey(), {}); store.set(ordKey(), []); }); toast('Everything is back in place'); };
+$('tTidy').onclick = () => { draw(true, null, () => { offs = {}; laneOrder = []; store.set(offKey(), {}); store.set(ordKey(), []); }); toast('All items are in their original positions'); };
 $('tHelp').onclick = () => { closePops(); const open = !$('help').classList.contains('open'); if (open) { deselect(); hideTip(); } $('help').classList.toggle('open', open); };
 $('zi').onclick = () => zoomAt(vp.clientWidth / 2, vp.clientHeight / 2, view.k * 1.25);
 $('zo').onclick = () => zoomAt(vp.clientWidth / 2, vp.clientHeight / 2, view.k / 1.25);
@@ -771,7 +771,7 @@ const busy = (on, msg) => { $('reload').disabled = on; if (msg) $('status').text
 const updateStatus = () => {
   const d = data, n = d.lanes.reduce((a, l) => a + l.commits.length, 0), f = (d.fresh || []).length, shown = L.lanes.length - 1, tot = d.lanes.length - 1;
   const conf = d.lanes.filter(l => l.conflict && l.conflict.state === 'conflict').length, bad = d.lanes.filter(l => l.ci && l.ci.state === 'failure').length;
-  $('status').textContent = `${shown === tot ? tot : shown + ' of ' + tot} branch${tot === 1 ? '' : 'es'} · ${n} commits` + (conf ? ` · ${conf} conflicting` : '') + (bad ? ` · ${bad} failing CI` : '') + (d.skipped ? ` · ${d.skipped} older not loaded` : '') + (!authed() && rate.remaining != null && rate.remaining < 15 ? ` · ${rate.remaining} free GitHub requests left` : '') + (f ? ` · ${f} new` : '');
+  $('status').textContent = `${shown === tot ? tot : shown + ' of ' + tot} branch${tot === 1 ? '' : 'es'} · ${n} commits` + (conf ? ` · ${conf} with conflicts` : '') + (bad ? ` · ${bad} with failed CI` : '') + (d.skipped ? ` · ${d.skipped} older not loaded` : '') + (!authed() && rate.remaining != null && rate.remaining < 15 ? ` · ${rate.remaining} free GitHub requests remain` : '') + (f ? ` · ${f} new` : '');
 };
 const effMax = () => authed() ? flt.max : Math.min(flt.max, 12);  // without a sign-in, stay well inside GitHub's free 60 requests/hour
 const showStart = () => {  // no repository yet: the canvas itself is the home page, with the repository menu open
@@ -781,7 +781,7 @@ const showStart = () => {  // no repository yet: the canvas itself is the home p
 const showEmpty = msg => { clearBoard(); data = null; L = null; $('emptyMsg').innerHTML = msg; $('empty').style.display = 'grid'; };
 const openRepo = async reload => {
   if (!cur) return showStart();
-  busy(true, reload ? 'asking GitHub…' : 'loading…');
+  busy(true, reload ? 'Reading from GitHub…' : 'Loading…');
   try {
     const d = await api(`api/graph?repo=${encodeURIComponent(cur)}&max=${effMax()}`, { method: reload ? 'POST' : 'GET' });
     data = d; data.github = (repos.find(r => r.id === cur) || {}).kind === 'github';
@@ -796,7 +796,7 @@ const openRepo = async reload => {
 // ----- repository menu -----
 const setPopMsg = () => { $('popmsg').innerHTML = ''; };
 function showErr(el, e) {
-  el.innerHTML = `<div class="alert" role="alert">${ico('alert')}<div>${e.rate ? `<b>GitHub's free limit is used up</b>Try again in ${esc(e.wait)}.${authed() ? '' : ' Run <code>gh auth login</code> in your terminal, then restart Map Git, to raise the limit.'}` : esc(e.message)}</div></div>`;
+  el.innerHTML = `<div class="alert" role="alert">${ico('alert')}<div>${e.rate ? `<b>The GitHub free limit is reached</b>Try again in ${esc(e.wait)}.${authed() ? '' : ' To raise the limit, run <code>gh auth login</code> in your terminal. Then start Map Git again.'}` : esc(e.message)}</div></div>`;
 }
 const fillRepos = () => { $('repoName').textContent = (repos.find(r => r.id === cur) || {}).name || 'Add a repository'; };
 function renderRepoList() {
@@ -848,11 +848,11 @@ async function ghReq(path, { gql } = {}) {
   try {
     r = gql ? await fetch('gh/graphql', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(gql) })
             : await fetch('gh' + path, { headers });
-  } catch { throw new Error('Could not reach GitHub. Check your connection, and that Map Git is still running in your terminal.'); }
+  } catch { throw new Error('Map Git cannot reach GitHub. Make sure that your internet connection works and that Map Git runs in your terminal.'); }
   const rem = r.headers.get('x-ratelimit-remaining'); if (rem != null) { rate.remaining = +rem; rate.limit = +r.headers.get('x-ratelimit-limit'); updateRate(); }
-  if (r.status === 401) throw new Error('GitHub rejected your sign-in (401). Run gh auth login in your terminal, then restart Map Git.');
-  if (r.status === 403 || r.status === 429) throw rem === '0' ? Object.assign(new Error('GitHub free limit used up'), { rate: true, wait: resetIn(r) }) : new Error('GitHub refused the request (403). ' + (tok ? 'Does your GitHub account have access to this repo (and is it authorised for SSO)?' : 'Most likely GitHub\'s free limit (60 requests per hour from your network) is used up, so try again in a while. It can also mean the repo is private.'));
-  if (r.status === 404) throw new Error(tok ? 'Repository not found, or your GitHub account cannot see it.' : "Couldn't find that repository. Private repo? Run gh auth login in your terminal, then restart Map Git.");
+  if (r.status === 401) throw new Error('GitHub does not accept your login (error 401). Run "gh auth login" in your terminal. Then start Map Git again.');
+  if (r.status === 403 || r.status === 429) throw rem === '0' ? Object.assign(new Error('GitHub free limit used up'), { rate: true, wait: resetIn(r) }) : new Error('GitHub refused the request (error 403). ' + (tok ? 'Your GitHub account possibly cannot access this repository. If the repository uses SSO, authorize your login for it.' : 'Possibly the free GitHub limit of 60 requests each hour is reached. Try again later. The repository can also be private.'));
+  if (r.status === 404) throw new Error(tok ? 'Map Git cannot find the repository, or your GitHub account cannot see it.' : 'Map Git cannot find that repository. If the repository is private, run "gh auth login" in your terminal. Then start Map Git again.');
   if (!r.ok) throw new Error('GitHub error ' + r.status);
   return r.json();
 }
@@ -942,7 +942,7 @@ async function staticApi(path, opts = {}) {
   const u = new URL(path, 'http://local/'), p = u.pathname, q = u.searchParams, post = opts.method === 'POST', body = opts.body ? JSON.parse(opts.body) : {}, list = () => store.get('gc-repos', []);
   if (p === '/api/repos' && post) {
     const src = String(body.source || '').trim(), m = /^(?:https?:\/\/)?(?:www\.)?(?:github\.com\/)?([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/.*)?$/.exec(src);
-    if (!m || /^[\/~.]/.test(src)) throw new Error('Type owner/repo or paste a github.com URL.');
+    if (!m || /^[\/~.]/.test(src)) throw new Error('Type owner/repo or paste a github.com link.');
     const info = await repoInfo(`/repos/${m[1]}/${m[2]}`), x = { id: 'gh:' + info.full_name.toLowerCase(), kind: 'github', name: info.full_name, owner: info.owner.login, repo: info.name }, l = list();
     if (!l.some(y => y.id === x.id)) l.push(x); store.set('gc-repos', l); return { repos: l, added: x.id };
   }

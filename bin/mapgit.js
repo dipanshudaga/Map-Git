@@ -13,24 +13,26 @@ const VERSION = require(path.join(ROOT, 'package.json')).version;
 const ASSETS = { '/': ['index.html', 'text/html; charset=utf-8'], '/index.html': ['index.html', 'text/html; charset=utf-8'], '/favicon.svg': ['favicon.svg', 'image/svg+xml'], '/favicon.png': ['favicon.png', 'image/png'], '/apple-touch-icon.png': ['apple-touch-icon.png', 'image/png'] };
 
 const HELP = `Map Git ${VERSION}
-See a GitHub repository as a map of branches and commits.
+Map Git shows a GitHub repository as a map of branches and commits.
 
 Usage:
   mapgit [owner/repo | github-url] [options]
 
-With no repository, Map Git opens the GitHub remote of the current
-folder. If the folder has none, it opens an empty canvas.
+If you give no repository, Map Git opens the GitHub remote of the
+current folder. If the folder has no GitHub remote, Map Git opens an
+empty canvas.
 
 Options:
-  -p, --port <number>   Port to use (default 4747)
+  -p, --port <number>   Use this port (default: 4747)
       --no-open         Do not open the browser
   -v, --version         Show the version
   -h, --help            Show this help
 
-Sign-in:
-  Map Git uses the GitHub CLI login (run "gh auth login") or the
-  GITHUB_TOKEN environment variable. A sign-in opens private repositories
-  and raises the GitHub limit from 60 to 5,000 requests each hour.
+Login:
+  Map Git uses your GitHub CLI login. To log in, run "gh auth login".
+  Map Git also reads the GITHUB_TOKEN variable.
+  A login opens private repositories. It also raises the GitHub limit
+  from 60 to 5,000 requests each hour.
 `;
 
 function parse(argv) {
@@ -144,12 +146,12 @@ async function main() {
   for (let i = 0; i < 10; i++) {
     server = createServer(token, port);
     try { await listen(server, port, 0); break; }
-    catch (e) { if (e.code === 'EADDRINUSE' && i < 9) { port++; continue; } console.error(`Cannot start the server: ${e.message}`); process.exit(1); }
+    catch (e) { if (e.code === 'EADDRINUSE' && i < 9) { port++; continue; } console.error(`Map Git cannot start the server: ${e.message}`); process.exit(1); }
   }
   const url = `http://127.0.0.1:${port}/` + (name ? `?repo=${name}` : '');
-  console.log(`Map Git is running at ${url}`);
-  if (fromFolder) console.log(`Opening ${name}, the GitHub remote of this folder.`);
-  console.log(token ? 'Signed in to GitHub. Private repositories and 5,000 requests each hour are available.' : 'Not signed in to GitHub. Public repositories only, and 60 requests each hour.\nTo sign in, run "gh auth login", then start Map Git again.');
+  console.log(`Map Git runs at ${url}`);
+  if (fromFolder) console.log(`Map Git opens ${name}. This is the GitHub remote of this folder.`);
+  console.log(token ? 'GitHub login found. Private repositories and 5,000 requests each hour are available.' : 'No GitHub login found. Only public repositories and 60 requests each hour are available.\nTo log in, run "gh auth login". Then start Map Git again.');
   console.log('Press Ctrl+C to stop.');
   if (o.open) openBrowser(url);
   const stop = () => { server.close(); process.exit(0); };
