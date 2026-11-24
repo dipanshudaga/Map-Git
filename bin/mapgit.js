@@ -5,6 +5,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execFile, spawn } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
@@ -17,6 +18,7 @@ Map Git shows a GitHub repository as a map of branches and commits.
 
 Usage:
   mapgit [owner/repo | github-url] [options]
+  mapgit update         Update Map Git to the newest version
 
 If you give no repository, Map Git opens the GitHub remote of the
 current folder. If the folder has no GitHub remote, Map Git opens an
@@ -34,6 +36,64 @@ Login:
   A login opens private repositories. It also raises the GitHub limit
   from 60 to 5,000 requests each hour.
 `;
+
+// ---- terminal look: one accent color, dim labels, thin rules ----
+const tty = !!process.stdout.isTTY && !process.env.NO_COLOR && process.env.TERM !== 'dumb';
+const truecolor = /truecolor|24bit/i.test(process.env.COLORTERM || '');
+const paint = (code, text) => tty ? `\x1b[${code}m${text}\x1b[0m` : String(text);
+const ui = {
+  accent: t => paint(truecolor ? '38;2;139;92;246' : '38;5;99', t),
+  bold: t => paint('1', t), dim: t => paint('2', t), green: t => paint('32', t), yellow: t => paint('33', t), red: t => paint('31', t),
+};
+const PAD = '  ', RULE = ui.dim('─'.repeat(44));
+const row = (label, value, note) => PAD + ui.dim(label.padEnd(12)) + value + '\n' + (note ? PAD + ' '.repeat(12) + ui.dim(note) + '\n' : '');
+const heading = text => `${PAD}${ui.accent('◆')} ${ui.bold('Map Git')}${text ? ui.dim('  ' + text) : ''}\n${PAD}${RULE}\n`;
+
+function banner({ address, name, fromFolder, token, update }) {
+  let out = '\n';
+  if (update) out += PAD + ui.green(`Update ${update} available, run mapgit update`) + '\n\n';
+  out += heading('v' + VERSION);
+  out += row('Repository', name ? ui.bold(name) : ui.dim('none yet'), name ? (fromFolder ? 'from this folder' : '') : 'paste a link in the browser');
+  out += row('Address', address);
+  out += row('GitHub', token ? ui.green('●') + ' Logged in' : ui.yellow('○') + ' Not logged in', token ? 'Private repos, 5,000 requests each hour' : 'Public repos, 60 requests each hour');
+  if (!token) out += row('Log in', ui.accent('gh auth login'), 'then start Map Git again');
+  out += PAD + RULE + '\n' + PAD + ui.dim('Press Ctrl+C to stop') + '\n';
+  return out;
+}
+
+// ---- update check and the "mapgit update" command ----
+const REGISTRY = process.env.MAPGIT_REGISTRY || 'https://registry.npmjs.org/mapgit/latest';
+const CACHE = path.join(os.tmpdir(), 'mapgit-update-check.json');
+const newer = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+async function latestVersion(ms = 4000) {
+  try { const r = await fetch(REGISTRY, { signal: AbortSignal.timeout(ms), headers: { accept: 'application/json' } }); return r.ok ? String((await r.json()).version || '') : ''; }
+  catch { return ''; }
+}
+// The notice never slows the start: it reads the last answer from a small cache and refreshes the cache in the background.
+function updateNotice() {
+  if (process.env.MAPGIT_NO_UPDATE_CHECK) return '';
+  let c = {}; try { c = JSON.parse(fs.readFileSync(CACHE, 'utf8')); } catch { /* no cache yet */ }
+  if (!c.t || Date.now() - c.t > 12 * 3600e3) latestVersion(3000).then(v => { if (v) try { fs.writeFileSync(CACHE, JSON.stringify({ t: Date.now(), latest: v })); } catch { /* ignore */ } });
+  return c.latest && newer(c.latest, VERSION) ? c.latest : '';
+}
+async function update() {
+  process.stdout.write('\n' + heading('update'));
+  const latest = await latestVersion();
+  if (!latest) { console.error(PAD + ui.red('✗') + ' Map Git cannot reach the npm registry.\n' + PAD + ui.dim('Check your internet connection and try again.\n')); process.exit(1); }
+  process.stdout.write(row('Installed', 'v' + VERSION) + row('Latest', 'v' + latest));
+  try { fs.writeFileSync(CACHE, JSON.stringify({ t: Date.now(), latest })); } catch { /* ignore */ }
+  const done = (mark, text, note) => { process.stdout.write(PAD + RULE + '\n' + PAD + mark + ' ' + text + '\n' + (note ? PAD + '  ' + ui.dim(note) + '\n' : '') + '\n'); };
+  if (!newer(latest, VERSION)) return done(ui.green('✓'), 'Map Git is up to date.');
+  if (ROOT.includes('_npx')) return done(ui.yellow('●'), 'You run Map Git with npx.', 'To use the newest version, run: npx mapgit@latest');
+  if (fs.existsSync(path.join(ROOT, '.git'))) return done(ui.yellow('●'), 'You run Map Git from a source folder.', 'To update, run: git pull');
+  const args = ['install', '--global', 'mapgit@latest'];
+  if (process.env.MAPGIT_DRY_RUN) return done(ui.dim('·'), 'Dry run. Map Git would run:', 'npm ' + args.join(' '));
+  process.stdout.write(PAD + RULE + '\n' + PAD + ui.accent('›') + ` Updating to v${latest}...\n\n`);
+  const code = await new Promise(res => { const c = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, { stdio: 'inherit' }); c.on('error', () => res(1)); c.on('close', res); });
+  if (code === 0) return done(ui.green('✓'), `Updated to v${latest}.`, 'Run mapgit again to use it.');
+  console.error('\n' + PAD + ui.red('✗') + ' The update failed.\n' + PAD + ui.dim('If npm shows a permission error, run: sudo npm install --global mapgit@latest') + '\n');
+  process.exit(1);
+}
 
 function parse(argv) {
   const o = { port: 4747, open: true, repo: '' };
@@ -132,6 +192,7 @@ function openBrowser(url) {
 async function main() {
   const o = parse(process.argv.slice(2));
   if (o.help) return void process.stdout.write(HELP);
+  if (o.repo === 'update') return update();
   if (o.version) return void console.log(VERSION);
   if (o.bad) { console.error(`Unknown option: ${o.bad}\n\n${HELP}`); process.exit(2); }
   if (!Number.isInteger(o.port) || o.port < 1 || o.port > 65535) { console.error('The port must be a number from 1 to 65535.'); process.exit(2); }
@@ -148,14 +209,11 @@ async function main() {
     try { await listen(server, port, 0); break; }
     catch (e) { if (e.code === 'EADDRINUSE' && i < 9) { port++; continue; } console.error(`Map Git cannot start the server: ${e.message}`); process.exit(1); }
   }
-  const url = `http://127.0.0.1:${port}/` + (name ? `?repo=${name}` : '');
-  console.log(`Map Git runs at ${url}`);
-  if (fromFolder) console.log(`Map Git opens ${name}. This is the GitHub remote of this folder.`);
-  console.log(token ? 'GitHub login found. Private repositories and 5,000 requests each hour are available.' : 'No GitHub login found. Only public repositories and 60 requests each hour are available.\nTo log in, run "gh auth login". Then start Map Git again.');
-  console.log('Press Ctrl+C to stop.');
+  const address = `http://127.0.0.1:${port}`, url = address + '/' + (name ? `?repo=${name}` : '');
+  console.log(banner({ address, name, fromFolder, token, update: updateNotice() }));
   if (o.open) openBrowser(url);
   const stop = () => { server.close(); process.exit(0); };
   process.on('SIGINT', stop); process.on('SIGTERM', stop);
 }
 
-if (require.main === module) main(); else module.exports = { parse, repoName, remoteRepo, folderRepo, createServer };
+if (require.main === module) main(); else module.exports = { parse, repoName, remoteRepo, folderRepo, createServer, newer };

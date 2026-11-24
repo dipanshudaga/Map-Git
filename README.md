@@ -38,6 +38,25 @@ To open a specific repository:
 npx mapgit facebook/react
 ```
 
+To keep Map Git on your computer, install it once:
+
+```bash
+npm install --global mapgit
+mapgit
+```
+
+## Update
+
+Run this command:
+
+```bash
+mapgit update
+```
+
+Map Git compares your version with the newest version. If the newest version is newer, Map Git installs it. When an update is available, a notice shows at the start of every run.
+
+NOTE: `npx mapgit@latest` always runs the newest version. It does not need an update.
+
 ## What you see
 
 - Branches as columns, with newer commits higher.
