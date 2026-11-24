@@ -661,8 +661,10 @@ function focusKey(key, select) {
 
 // ---------- expand / filters ----------
 const toggleGap = g => { expanded.has(g.key) ? expanded.delete(g.key) : expanded.add(g.key); store.set(expKey(), [...expanded]); draw(true, g.after.hash); };
-const toggleTail = name => { const k = 'tail:' + name; expanded.has(k) ? expanded.delete(k) : expanded.add(k); store.set(expKey(), [...expanded]); draw(true, 'more:' + name); };
-const toggleLane = name => { expanded.has(name) ? expanded.delete(name) : expanded.add(name); store.set(expKey(), [...expanded]); draw(true, 'more:' + name); };
+// When a branch opens downward, keep its lowest visible card where it is on screen: the new commits appear below it and the view does not move.
+const lowestCard = name => { const l = L.lanes.find(x => x.name === name), cs = l ? l.cards : []; return cs.length ? cs.reduce((m, k) => k.y > m.y ? k : m).key : 'more:' + name; };
+const toggleTail = name => { const k = 'tail:' + name; const opening = !expanded.has(k), anchor = opening ? lowestCard(name) : 'more:' + name; opening ? expanded.add(k) : expanded.delete(k); store.set(expKey(), [...expanded]); draw(true, anchor); };
+const toggleLane = name => { const opening = !expanded.has(name), anchor = opening ? lowestCard(name) : 'more:' + name; opening ? expanded.add(name) : expanded.delete(name); store.set(expKey(), [...expanded]); draw(true, anchor); };
 $('expAll').onclick = () => {
   const all = L.lanes.every(l => expanded.has(l.name) || l.commits.length <= START);
   expanded = all ? new Set() : new Set(data.lanes.map(l => l.name));
