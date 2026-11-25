@@ -148,6 +148,8 @@
   #side summary::-webkit-details-marker { display:none } #side details[open] > summary > .i:last-child { transform:rotate(180deg) }
   #side .sec { margin-top:var(--s4); border-top:1px solid var(--line) } #side .sec summary { display:flex; align-items:center; gap:var(--s2); height:44px; cursor:pointer; list-style:none; font:var(--t-label); color:var(--ink-2) } #side .sec summary:hover { color:var(--ink) } #side .sec summary em { font-style:normal; color:var(--muted); font:var(--t-caption-strong); background:var(--fill); border-radius:var(--pill); padding:0 var(--s2); line-height:20px } #side .sec summary > .i:last-child { margin-left:auto; color:var(--faint) }
   #side .sec > .files, #side .sec > .cmdnote:first-child { margin-top:0 }
+  #side .flow { display:flex; align-items:center; gap:var(--s2); margin-top:var(--s4); padding:var(--s3) var(--s4); border-radius:var(--r2); background:var(--fill); flex-wrap:wrap } #side .flow .sp { flex:1 } #side .flow .go { display:inline-flex; color:var(--faint); transform:rotate(90deg) }
+  #side .btn.primary { background:var(--accent); color:#fff } #side .btn.primary:hover { background:var(--accent); filter:brightness(.92) }
   #side .btn { display:flex; align-items:center; justify-content:center; gap:var(--s2); height:var(--c); margin-top:var(--s5); border-radius:var(--r2); background:var(--fill); color:var(--ink); font:var(--t-label); text-decoration:none } #side .btn:hover { background:var(--fill-2) }
   #side h4 { margin:var(--s5) 0 var(--s2) }
   .stats { display:grid; grid-template-columns:1fr 1fr; gap:var(--s3); margin-top:var(--s5) }
@@ -640,7 +642,7 @@ function conflictStatus(ln) {
   const cf = ln.conflict, base = data.base; if (!cf || ln.is_base) return '';
   const n = cf.files.length;
   if (cf.state === 'merged') return st('ok', 'check', 'Fully merged', `Everything is in <b>${esc(base)}</b>. You can delete this branch.`, 'merged');
-  if (cf.state === 'conflict') return st('bad', 'alert', `Merge conflict${n ? ` in ${n} file${n > 1 ? 's' : ''}` : ''}`, `Both sides changed the same lines${cf.source === 'pr' ? '. GitHub cannot merge this pull request' : ''}. A person must choose.`, 'conflict');
+  if (cf.state === 'conflict') return st('bad', 'alert', `Merge conflict${n ? ` in ${n} file${n > 1 ? 's' : ''}` : ''}`, cf.source === 'pr' ? 'GitHub cannot merge this pull request.' : 'Both sides changed the same lines.', 'conflict');
   if (cf.state === 'possible') return st('warn', 'alert', 'May conflict', `${n} file${n > 1 ? 's' : ''} changed on both sides.`, 'conflict');
   if (cf.state === 'clean') return st('ok', 'check', 'Merges cleanly', '');
   return st('info', 'info', 'Conflict check not available', 'Too few GitHub requests remain. Run "gh auth login" to raise the limit.');
@@ -664,14 +666,15 @@ function inspect(key) {
       ${it === ln.tip ? ciStatus(ln.ci) : ''}
       ${sec('Git commands', null, cmd('git show ' + c.short, 'Show the changes in this commit.') + cmd('git checkout ' + c.short, 'Go back to the project as it was here.'))}`;
   } else if (it.kind === 'pr') {
-    const pr = it.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN;
+    const pr = it.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN, cf = ln.conflict;
     band = band_(col[0], `Pull request #${pr.number}` + info('pr'), pr.title);
-    const rv = { APPROVED: ['Approved', 'ok'], CHANGES_REQUESTED: ['Changes requested', 'bad'], REVIEW_REQUIRED: ['Review needed', 'warn'] }[pr.review];
+    const rv = { APPROVED: ['Approved', 'ok', 'check'], CHANGES_REQUESTED: ['Changes requested', 'bad', 'alert'], REVIEW_REQUIRED: ['Review needed', 'warn', 'clock'] }[pr.review];
+    const nfiles = cf && cf.changed ? cf.changed.length : null;
     body = `<div class="meta"><span class="av" style="background:${avColor(pr.author || '?')}">${esc(initials(pr.author || '?'))}</span><b>${esc(pr.author || '?')}</b>${pr.created ? `<span>opened ${ago(Date.parse(pr.created) / 1000)}</span>` : ''}</div>
-      <div class="chips">${prPill(pr)}${rv ? `<span class="pill" style="background:var(--${rv[1]}bg);color:var(--${rv[1]})">${rv[0]}</span>` : ''}</div>
-      <div class="chips flow">${laneChip(ln)}<span class="arrow">${ico('arrow-down', 'xs')}</span><span class="pill" style="background:${tint(BASE_COLOR, .16)};color:${BASE_COLOR}">${ico('branch', 'xs')}${esc(pr.base || base)}</span></div>
-      ${pr.state === 'OPEN' ? conflictStatus(ln) : ''}${ciStatus(ln.ci)}
-      ${pr.url ? `<a class="btn" href="${esc(pr.url)}" target="_blank" rel="noopener">${ico('github')}Open on GitHub${ico('external', 'xs')}</a>` : ''}`;
+      <div class="flow">${laneChip(ln)}<span class="go">${ico('arrow-up', 'xs')}</span><span class="pill" style="background:${tint(BASE_COLOR, .16)};color:${BASE_COLOR}">${ico('branch', 'xs')}${esc(pr.base || base)}</span><span class="sp"></span>${prPill(pr)}</div>
+      <div class="tiles"><div class="tile"><b>${ln.ahead}</b><span>Commit${ln.ahead === 1 ? '' : 's'}</span></div><div class="tile"><b>${nfiles == null ? '-' : nfiles}</b><span>File${nfiles === 1 ? '' : 's'} changed</span></div></div>
+      ${rv && pr.state === 'OPEN' ? st(rv[1], rv[2], rv[0], '') : ''}${pr.state === 'OPEN' ? conflictStatus(ln) : ''}${ciStatus(ln.ci)}
+      ${pr.url ? `<a class="btn primary" href="${esc(pr.url)}" target="_blank" rel="noopener">${ico('github')}Open on GitHub${ico('external', 'xs')}</a>` : ''}`;
   } else {
     const cf = ln.conflict, tot = ln.ahead + ln.behind;
     band = band_(ln.color, (ln.is_base ? 'Main branch' : 'Branch') + info(ln.is_base ? 'main' : 'branch'), ln.name);
