@@ -260,7 +260,7 @@
 
 <aside id="side" class="float"></aside>
 <div id="tip" role="tooltip"></div>
-<div id="zoom" class="float"><button class="tb" id="filtBtn" data-pop="filt" title="Filters"><svg class="i" aria-hidden="true"><use href="#i-filter"/></svg><span class="lbl">Filters</span><span class="badge" id="filtN" style="display:none"></span></button><button class="tb" id="expAll" title="Expand all"><svg class="i" aria-hidden="true"><use href="#i-unfold"/></svg><span class="lbl">Expand all</span></button><span class="sep"></span><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg></button><button class="tb icon" id="tTidy" title="Tidy up: put every moved item back (T)" aria-label="Tidy up" style="display:none"><svg class="i lg" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Git terms"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg></button></div>
+<div id="zoom" class="float"><button class="tb" id="filtBtn" data-pop="filt" title="Filters"><svg class="i lg" aria-hidden="true"><use href="#i-filter"/></svg><span class="lbl">Filters</span><span class="badge" id="filtN" style="display:none"></span></button><button class="tb" id="expAll" title="Expand all"><svg class="i lg" aria-hidden="true"><use href="#i-unfold"/></svg><span class="lbl">Expand all</span></button><span class="sep"></span><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg></button><button class="tb icon" id="tTidy" title="Tidy up: put every moved item back (T)" aria-label="Tidy up" style="display:none"><svg class="i lg" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Git terms"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg></button></div>
 <div id="toast"></div>
 
 <script>
@@ -291,7 +291,7 @@ const TERMS = {
   forked: ['Forked from', 'The commit on main where this branch started.']
 };
 const info = k => `<button class="tipbtn" data-term="${k}" aria-label="What is ${TERMS[k][0].toLowerCase()}?">${ico('info')}</button>`;
-const setExp = all => { $('expAll').innerHTML = ico(all ? 'fold' : 'unfold') + `<span class="lbl">${all ? 'Collapse all' : 'Expand all'}</span>`; $('expAll').title = all ? 'Collapse all' : 'Expand all'; };
+const setExp = all => { $('expAll').innerHTML = ico(all ? 'fold' : 'unfold', 'lg') + `<span class="lbl">${all ? 'Collapse all' : 'Expand all'}</span>`; $('expAll').title = all ? 'Collapse all' : 'Expand all'; };
 const toast = t => { const n = $('toast'); n.textContent = t; n.style.display = 'flex'; clearTimeout(toast.t); toast.t = setTimeout(() => n.style.display = 'none', 1600); };
 
 // ---------- constants ----------
