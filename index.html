@@ -310,7 +310,8 @@ const ageDays = ln => ln.commits.length ? (nowS() - ln.commits[0].ct) / DAY : 0;
 // ---------- state ----------
 let view = { x: 120, y: 100, k: 1 }, data = null, repos = [], cur = store.get('gc-repo', null), L = null, selKey = null;
 let laneOrder = [];  // user's column order (names), set by dragging a branch title
-let expanded = new Set(), offs = {}, flt = { max: 25, stale: 0, merged: false, conf: false, ...store.get('gc-filters', {}) };
+let openedRepo = null, expanded = new Set(), offs = {}, flt = { max: 25, stale: 0, merged: false, conf: false, ...store.get('gc-filters', {}) };
+try { Object.keys(localStorage).filter(k => k.startsWith('gc-exp-')).forEach(k => localStorage.removeItem(k)); } catch { /* ignore */ }
 const expKey = () => 'gc-exp-' + cur, offKey = () => 'gc-off2-' + cur, ordKey = () => 'gc-order-' + cur;
 
 // ---------- layout (pure function of data + filters + expanded) ----------
@@ -439,14 +440,15 @@ function tween(from, anchor) {
     if (k < 1) for (const it of items) { const f = from[it.key], t = truePos(it); OV[it.key] = { x: f.x + (t.x - f.x) * e, y: f.y + (t.y - f.y) * e }; }
     if (anchor && L.items[anchor.key]) {  // hold the anchor still on screen: pan the view by however far it would have moved
       const pt = OV[anchor.key] || truePos(L.items[anchor.key]);
-      view.x = anchor.v0.x + (anchor.p0.x - pt.x) * view.k; view.y = anchor.v0.y + (anchor.p0.y - pt.y) * view.k; applyView();
+      const by = anchor.to ? anchor.v0.y + (anchor.to.y - anchor.v0.y) * e : anchor.v0.y;
+      view.x = anchor.v0.x + (anchor.p0.x - pt.x) * view.k; view.y = by + (anchor.p0.y - pt.y) * view.k; applyView();
     }
     Object.values(L.items).forEach(place); drawEdges();
     if (k < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
-function draw(animate = true, anchorKey = null, mutate = null) {
+function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
   const old = {}, v0 = { x: view.x, y: view.y };
   if (L && animate) for (const it of Object.values(L.items)) old[it.key] = pos(it);
   OV = {};
@@ -458,7 +460,11 @@ function draw(animate = true, anchorKey = null, mutate = null) {
     const cand = anchorKey && old[anchorKey] && L.items[anchorKey] ? [anchorKey] : Object.keys(old).filter(k => L.items[k]);
     let best = null, bd = 1e18;
     for (const k of cand) { const p = old[k], d = Math.hypot(p.x + L.items[k].w / 2 - cx, p.y + L.items[k].h / 2 - cy); if (d < bd) { bd = d; best = k; } }
-    if (best) anchor = { key: best, p0: old[best], v0 };
+    if (best) {
+      anchor = { key: best, p0: old[best], v0 };
+      // When something folds away, the anchor may be far off screen (you were scrolled to the bottom of what just closed). Then pan to it, so you never land on a blank canvas.
+      if (reveal && best === anchorKey) { const sy = v0.y + old[best].y * view.k, h = L.items[best].h * view.k; if (sy < 88 || sy + h > vp.clientHeight - 96) anchor.to = { y: vp.clientHeight * .32 - old[best].y * view.k }; }
+    }
   }
   const frag = document.createDocumentFragment(), fresh = new Set(data.fresh || []), seenKeys = new Set(), created = [];
   const mk = (it, cls, html) => {
@@ -680,15 +686,15 @@ function focusKey(key, select) {
 }
 
 // ---------- expand / filters ----------
-const toggleGap = g => { expanded.has(g.key) ? expanded.delete(g.key) : expanded.add(g.key); store.set(expKey(), [...expanded]); draw(true, g.after.hash); };
+const toggleGap = g => { const opening = !expanded.has(g.key); opening ? expanded.add(g.key) : expanded.delete(g.key); draw(true, g.after.hash, null, !opening); };
 // When a branch opens downward, keep its lowest visible card where it is on screen: the new commits appear below it and the view does not move.
 const lowestCard = name => { const l = L.lanes.find(x => x.name === name), cs = l ? l.cards : []; return cs.length ? cs.reduce((m, k) => k.y > m.y ? k : m).key : 'more:' + name; };
-const toggleTail = name => { const k = 'tail:' + name; const opening = !expanded.has(k), anchor = opening ? lowestCard(name) : 'more:' + name; opening ? expanded.add(k) : expanded.delete(k); store.set(expKey(), [...expanded]); draw(true, anchor); };
-const toggleLane = name => { const opening = !expanded.has(name), anchor = opening ? lowestCard(name) : 'more:' + name; opening ? expanded.add(name) : expanded.delete(name); store.set(expKey(), [...expanded]); draw(true, anchor); };
+const toggleTail = name => { const k = 'tail:' + name; const opening = !expanded.has(k), anchor = opening ? lowestCard(name) : 'more:' + name; opening ? expanded.add(k) : expanded.delete(k); draw(true, anchor, null, !opening); };
+const toggleLane = name => { const opening = !expanded.has(name), anchor = opening ? lowestCard(name) : 'more:' + name; opening ? expanded.add(name) : expanded.delete(name); draw(true, anchor, null, !opening); };
 $('expAll').onclick = () => {
   const all = L.lanes.every(l => expanded.has(l.name) || l.commits.length <= START);
   expanded = all ? new Set() : new Set(data.lanes.map(l => l.name));
-  store.set(expKey(), [...expanded]); setExp(!all); draw();
+  setExp(!all); draw();
 };
 const seg = (id, opts, key, onchange) => {
   const box = $(id); box.innerHTML = opts.map(([v, t]) => `<button data-v="${v}" class="${flt[key] === v ? 'on' : ''}">${t}</button>`).join('');
@@ -812,9 +818,10 @@ const openRepo = async reload => {
   try {
     const d = await api(`api/graph?repo=${encodeURIComponent(cur)}&max=${effMax()}`, { method: reload ? 'POST' : 'GET' });
     data = d; data.github = (repos.find(r => r.id === cur) || {}).kind === 'github';
-    expanded = new Set(store.get(expKey(), [])); offs = store.get(offKey(), {}); laneOrder = store.get(ordKey(), []); deselect(); closePops();
+    if (openedRepo !== cur) expanded = new Set(); openedRepo = cur;  // a repository always opens collapsed; Reload keeps what you opened
+    offs = store.get(offKey(), {}); laneOrder = store.get(ordKey(), []); deselect(); closePops();
     clearBoard(); draw(false); syncFilters(); updateStatus(); fit();
-    $('empty').style.display = 'none'; document.body.classList.remove('empty'); setExp(false);
+    $('empty').style.display = 'none'; document.body.classList.remove('empty'); setExp(L.lanes.every(l => expanded.has(l.name) || l.commits.length <= START));
     { const nm = (repos.find(r => r.id === cur) || {}).name; if (nm) try { history.replaceState(null, '', '?repo=' + nm); } catch {} }  // the address bar names the repo
   } catch (e) { $('status').textContent = 'error: ' + e.message; showEmpty(esc(e.message)); }
   busy(false);
