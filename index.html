@@ -121,7 +121,7 @@
   .head,.card,.pr,.more { transition:opacity .25s }
 
   /* ===== Inspector: 400px wide, 24px padding, 24px between sections ===== */
-  #side { top:calc(var(--edge) + var(--bar) + var(--s2)); right:var(--edge); bottom:var(--edge); width:400px; overflow:auto; display:none }
+  #side { top:calc(var(--edge) + var(--bar) + var(--s2)); right:var(--edge); max-height:calc(100vh - 2*var(--edge) - var(--bar) - var(--s2)); width:400px; overflow:auto; display:none }
   #side.open { display:block }
   #side .band { padding:var(--s5); color:#fff; position:relative }
   .overline,#side h4,.ph,#side .band .kind { font:var(--t-overline); letter-spacing:.06em; text-transform:uppercase; color:var(--faint) }
@@ -131,16 +131,13 @@
   #side .body { padding:0 var(--s5) var(--s5) }
   #side .meta { display:flex; align-items:center; gap:var(--s2); margin-top:var(--s4); color:var(--muted); font:var(--t-body) } #side .meta b { color:var(--ink); font:var(--t-label) } #side .meta span:last-child::before { content:"·"; margin-right:var(--s2) }
   #side .chips { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s2); margin-top:var(--s3) } #side .chips .pill { height:24px; padding:0 var(--s3) } #side .arrow { color:var(--faint); display:inline-flex; transform:rotate(-90deg) }
-  #side .rows { margin-top:var(--s4) } #side .r { display:flex; justify-content:space-between; align-items:center; gap:var(--s4); min-height:32px; padding:var(--s1) 0; border-top:1px solid var(--line) } #side .r:first-child { border-top:0 }
+  #side .rows { margin-top:var(--s4); padding:var(--s1) var(--s4); border-radius:var(--r2); box-shadow:0 0 0 1px var(--line) inset } #side .r { display:flex; justify-content:space-between; align-items:center; gap:var(--s4); min-height:40px; padding:var(--s1) 0; border-top:1px solid var(--line) } #side .r:first-child { border-top:0 }
   #side .r > span { color:var(--muted); flex:none } #side .r > div { display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap; justify-content:flex-end; text-align:right; word-break:break-word } #side .m { color:var(--muted); font-weight:400 }
   #side .mini { width:24px; height:24px; border-radius:var(--r1); display:grid; place-items:center; color:var(--faint) } #side .mini:hover { background:var(--fill); color:var(--ink) }
   #side .tiles { display:grid; grid-template-columns:1fr 1fr; gap:var(--s3); margin-top:var(--s4) }
   #side .tile { border-radius:var(--r2); background:var(--fill); padding:var(--s3) var(--s4) var(--s3) } #side .tile b { display:block; font:var(--t-heading); font-size:28px; line-height:34px; font-variant-numeric:tabular-nums }
   #side .tile span { display:inline-flex; align-items:center; gap:var(--s1); color:var(--muted); font:var(--t-caption) } #side .tile .tipbtn { margin-left:0 }
   #side .two { display:flex; flex-direction:column; align-items:flex-end; min-width:0 } #side .two small { font:var(--t-caption); color:var(--muted); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-  #side .cmd { display:flex; align-items:center; gap:var(--s3); width:100%; margin:0 0 var(--s2); padding:var(--s3) var(--s4); border-radius:var(--r2); background:var(--fill); color:var(--ink); text-align:left; cursor:pointer }
-  #side .cmd:hover { background:var(--fill-2) } #side .cmd code { flex:1; font:var(--t-code); white-space:normal; word-break:break-word } #side .cmd .i { flex:none; color:var(--faint) } #side .cmd:hover .i { color:var(--ink) }
-  #side .sec > .cmd:first-of-type { margin-top:0 } #side .sec[open] { padding-bottom:var(--s2) }
   #side .idc { cursor:pointer; border-radius:var(--r1); padding:2px 6px; margin-right:-6px } #side .idc:hover { background:var(--fill) }
   #side .st { display:flex; gap:var(--s3); align-items:flex-start; padding:var(--s3) var(--s4); border-radius:var(--r2); margin-top:var(--s3); font:var(--t-body) } #side .st > .i, #side .st summary > .i:first-child { flex:none; margin-top:2px } #side .st b { font:var(--t-label); display:inline-flex; align-items:center } #side .st span { display:block; margin-top:2px; opacity:.85 }
   #side .st.ok { background:var(--okbg); color:#14532d } #side .st.bad { background:var(--badbg); color:#7f1d1d } #side .st.warn { background:var(--warnbg); color:#78350f } #side .st.info { background:var(--fill); color:var(--ink-2) }
@@ -239,7 +236,7 @@
     body #tl { left:50%; transform:translateX(-50%); max-width:calc(100vw - 2 * var(--edge)) }
     body #zoom { top:auto; right:auto; left:50%; bottom:var(--edge); transform:translateX(-50%) }
     body #zoom .tb .lbl { display:none }
-    body #side { top:calc(var(--edge) + var(--bar) + var(--s2)); bottom:calc(var(--edge) + var(--bar) + var(--s2)); left:var(--edge); right:var(--edge); width:auto }
+    body #side { top:calc(var(--edge) + var(--bar) + var(--s2)); left:var(--edge); right:var(--edge); width:auto; max-height:calc(100vh - 2*var(--edge) - 2*var(--bar) - 2*var(--s2)) }
     body #help { top:auto; bottom:calc(var(--edge) + var(--bar) + var(--s2)); left:50%; right:auto; transform:translateX(-50%); max-height:calc(100vh - 2 * (var(--edge) + var(--bar) + var(--s2))) }
     body #toast { bottom:calc(var(--edge) + var(--bar) + var(--s2)) }
     body .pop { width:min(360px, calc(100vw - 2 * var(--edge))) }
@@ -622,7 +619,6 @@ function drawEdges() {
 }
 
 // ---------- inspector ----------
-const cmd = (c, tip) => `<button class="cmd" data-copy="${esc(c)}" title="${esc(tip || 'Copy')} · click to copy"><code>${esc(c)}</code>${ico('copy', 'xs')}</button>`;
 const laneChip = ln => `<a class="pill link" data-lane="${esc(ln.name)}" style="background:${tint(ln.color, .16)};color:${ln.color};text-decoration:none">${ico('branch', 'xs')}${esc(ln.name)}</a>`;
 const fileList = (files, clash = []) => files.length ? `<ul class="files">${files.slice(0, 80).map(f => `<li class="${clash.includes(f) ? 'clash' : ''}">${esc(f)}</li>`).join('')}${files.length > 80 ? `<li>…and ${files.length - 80} more</li>` : ''}</ul>` : '';
 // A quiet row: label on the left, value on the right.
@@ -641,7 +637,7 @@ const ciStatus = ci => {
 function conflictStatus(ln) {
   const cf = ln.conflict, base = data.base; if (!cf || ln.is_base) return '';
   const n = cf.files.length;
-  if (cf.state === 'merged') return st('ok', 'check', 'Fully merged', `Everything is in <b>${esc(base)}</b>. You can delete this branch.`, 'merged');
+  if (cf.state === 'merged') return st('ok', 'check', 'Fully merged', `All of it is in <b>${esc(base)}</b>. Safe to delete.`, 'merged');
   if (cf.state === 'conflict') return st('bad', 'alert', `Merge conflict${n ? ` in ${n} file${n > 1 ? 's' : ''}` : ''}`, cf.source === 'pr' ? 'GitHub cannot merge this pull request.' : 'Both sides changed the same lines.', 'conflict');
   if (cf.state === 'possible') return st('warn', 'alert', 'May conflict', `${n} file${n > 1 ? 's' : ''} changed on both sides.`, 'conflict');
   if (cf.state === 'clean') return st('ok', 'check', 'Merges cleanly', '');
@@ -663,8 +659,7 @@ function inspect(key) {
     body = `<div class="meta"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b><span title="${esc(fmtDate(c.date))}">${ago(c.ct)}</span></div>
       <div class="chips">${chips}</div>
       <div class="rows">${row('Date', esc(fmtDate(c.date)))}${row('Commit ID' , `<code class="idc" data-copy="${esc(c.hash)}" title="Click to copy the full ID">${esc(c.short)}</code>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', fork && fork.map(esc).join(', '), 'split')}</div>
-      ${it === ln.tip ? ciStatus(ln.ci) : ''}
-      ${sec('Git commands', null, cmd('git show ' + c.short, 'Show the changes in this commit.') + cmd('git checkout ' + c.short, 'Go back to the project as it was here.'))}`;
+      ${it === ln.tip ? ciStatus(ln.ci) : ''}`;
   } else if (it.kind === 'pr') {
     const pr = it.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN, cf = ln.conflict;
     band = band_(col[0], `Pull request #${pr.number}` + info('pr'), pr.title);
@@ -683,13 +678,9 @@ function inspect(key) {
     const stale = !ln.is_base && ageDays(ln) > 30 ? st('warn', 'clock', 'Stale', `Last commit ${ago(ln.commits[0].ct)}.`, 'stale') : '';
     const counts = ln.is_base ? '' : `<div class="tiles"><div class="tile"><b style="color:${ln.color}">${ln.ahead}</b><span>${ico('arrow-up', 'xs')}Ahead${info('ahead')}</span></div><div class="tile"><b>${ln.behind}</b><span>${ico('arrow-down', 'xs')}Behind${info('behind')}</span></div></div>`;
     const files = cf && cf.changed.length ? sec('Changed files', cf.changed.length, (cf.files.length ? `<div class="cmdnote" style="margin:0 0 8px"><b style="color:var(--bad)">Red</b> files also changed on ${esc(base)}.</div>` : '') + fileList(cf.changed, cf.files), cf.state === 'conflict' || cf.state === 'possible') : '';
-    const cmds = ln.is_base ? '' : sec('Git commands', null,
-      (ln.ahead ? cmd(`git checkout ${base} && git merge ${ln.name}`, 'Merge this branch into ' + esc(base) + '.') : '') +
-      (ln.behind ? cmd(`git checkout ${ln.name} && git merge ${base}`, 'Bring ' + esc(base) + ' into this branch.') : '') +
-      cmd(`git log ${base}..${ln.name} --oneline`, 'List the commits only this branch has.'));
     body = `${counts}
       <div class="rows">${ln.is_base ? '' : row('Forked from', fork)}${mbc && !ln.is_base ? row('Forked on', esc(fmtDate(mbc.c.date))) : ''}${ln.commits.length ? row('Updated', ago(ln.commits[0].ct)) : ''}${ln.pr ? row('Pull request', `<a class="link" data-key="pr:${esc(ln.name)}">#${ln.pr.number}</a> ${prPill(ln.pr)}`, 'pr') : ''}</div>
-      ${stale}${conflictStatus(ln)}${ciStatus(ln.ci)}${files}${cmds}`;
+      ${stale}${conflictStatus(ln)}${ciStatus(ln.ci)}${files}`;
   }
   s.innerHTML = band + `<div class="body">${body}</div>`; s.classList.add('open'); document.body.classList.add('side'); s.scrollTop = 0;
 }
