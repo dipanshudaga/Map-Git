@@ -725,10 +725,14 @@ $('tTidy').onclick = () => { draw(true, null, () => { offs = {}; laneOrder = [];
 $('tHelp').onclick = () => { closePops(); const open = !$('help').classList.contains('open'); if (open) { deselect(); hideTip(); } $('help').classList.toggle('open', open); };
 $('zi').onclick = () => zoomAt(vp.clientWidth / 2, vp.clientHeight / 2, view.k * 1.25);
 $('zo').onclick = () => zoomAt(vp.clientWidth / 2, vp.clientHeight / 2, view.k / 1.25);
+// A scroll gesture is one kind from start to end. Only its FIRST event decides: a mouse wheel starts with a whole-number step of 100 or more,
+// and a trackpad starts small and grows. Deciding on every event would be wrong, because a fast trackpad flick also sends big whole numbers.
+let wheelAt = 0, wheelIsMouse = false;
 vp.addEventListener('wheel', e => {
   e.preventDefault();
-  const mouse = e.deltaMode === 1 || (e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 100);  // notched wheel zooms, trackpad pans
-  if (e.ctrlKey || e.metaKey || mouse) zoomAt(e.clientX, e.clientY, view.k * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0015)));
+  if (e.timeStamp - wheelAt > 120) wheelIsMouse = e.deltaMode === 1 || (e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 100);
+  wheelAt = e.timeStamp;
+  if (e.ctrlKey || e.metaKey || wheelIsMouse) zoomAt(e.clientX, e.clientY, view.k * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0015)));
   else { view.x -= e.deltaX; view.y -= e.deltaY; applyView(); }
 }, { passive: false });
 window.addEventListener('keydown', e => {
