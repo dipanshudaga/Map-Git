@@ -189,6 +189,8 @@
   #toast { position:fixed; left:50%; bottom:var(--edge); transform:translateX(-50%); background:#14141c; color:#fff; height:var(--c); padding:0 var(--s4); border-radius:var(--pill); font:var(--t-label); z-index:20; display:none; align-items:center }
   /* top-right bar: icons only. The label slides open on hover or focus. Touch screens have no hover, so a wide touch screen shows the labels. */
   #zoom .tb { gap:0 } #zoom .tb .badge { margin-left:6px }
+  #zoom .tb.icon { width:auto; min-width:var(--c); padding:0 10px }
+  .tb .lbl i { font:var(--t-caption); font-style:normal; color:var(--faint); margin-left:var(--s2) }
   .tb .lbl { display:inline-block; overflow:hidden; white-space:nowrap; max-width:0; opacity:0; margin-left:0; transition:max-width .2s ease, opacity .15s ease, margin-left .2s ease }
   @media (hover:hover) { #zoom .tb:hover .lbl, #zoom .tb:focus-visible .lbl, #zoom .tb.on .lbl { max-width:120px; opacity:1; margin-left:var(--s2) } }
   @media (hover:none) and (min-width:761px) { #zoom .tb .lbl { max-width:120px; opacity:1; margin-left:var(--s2) } }
@@ -258,7 +260,7 @@
 
 <aside id="side" class="float"></aside>
 <div id="tip" role="tooltip"></div>
-<div id="zoom" class="float"><button class="tb" id="filtBtn" data-pop="filt" title="Filters"><svg class="i lg" aria-hidden="true"><use href="#i-filter"/></svg><span class="lbl">Filters</span><span class="badge" id="filtN" style="display:none"></span></button><button class="tb" id="expAll" title="Expand all"><svg class="i lg" aria-hidden="true"><use href="#i-unfold"/></svg><span class="lbl">Expand all</span></button><span class="sep"></span><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg></button><button class="tb icon" id="tTidy" title="Tidy up: put every moved item back (T)" aria-label="Tidy up" style="display:none"><svg class="i lg" aria-hidden="true"><use href="#i-grid"/></svg></button><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Git terms"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg></button></div>
+<div id="zoom" class="float"><button class="tb" id="filtBtn" data-pop="filt" title="Filters"><svg class="i lg" aria-hidden="true"><use href="#i-filter"/></svg><span class="lbl">Filters</span><span class="badge" id="filtN" style="display:none"></span></button><button class="tb" id="expAll" title="Expand all"><svg class="i lg" aria-hidden="true"><use href="#i-unfold"/></svg><span class="lbl">Expand all</span></button><span class="sep"></span><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg><span class="lbl">Fit<i>F</i></span></button><button class="tb icon" id="tTidy" title="Tidy up: put every moved item back (T)" aria-label="Tidy up" style="display:none"><svg class="i lg" aria-hidden="true"><use href="#i-grid"/></svg><span class="lbl">Tidy up<i>T</i></span></button><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Git terms"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg><span class="lbl">Help<i>?</i></span></button></div>
 <div id="toast"></div>
 
 <script>
