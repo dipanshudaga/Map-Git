@@ -84,7 +84,7 @@
   #edges { position:absolute; left:0; top:0; overflow:visible; pointer-events:none }
 
   /* ===== Canvas items: sizes are multiples of 8 (card 256x128, title 256x128, PR 256x120) ===== */
-  .head { position:absolute; width:256px; height:128px; border-radius:var(--r3); padding:var(--s3) var(--s4); color:#fff; cursor:grab; box-shadow:var(--e2); user-select:none }
+  .head { position:absolute; width:256px; height:128px; border-radius:var(--r3); padding:var(--s3) var(--s4); color:#fff; cursor:pointer; box-shadow:var(--e2); user-select:none }
   .head .n { display:flex; align-items:center; gap:var(--s2); font:var(--t-title); font-weight:700 }
   .head .n span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
   .head .sub { display:flex; flex-wrap:wrap; gap:var(--s1); margin-top:var(--s2) }
@@ -94,12 +94,12 @@
   .chip { background:rgba(255,255,255,.24) }
   .chip.ok { background:#fff; color:var(--ok) } .chip.bad { background:#fff; color:var(--bad) } .chip.warn { background:#fff; color:var(--warn) }
 
-  .pr { position:absolute; width:256px; height:120px; border-radius:var(--r2); padding:var(--s3); background:#fff; border:2px solid; cursor:grab; box-shadow:var(--e1); user-select:none }
+  .pr { position:absolute; width:256px; height:120px; border-radius:var(--r2); padding:var(--s3); background:#fff; border:2px solid; cursor:pointer; box-shadow:var(--e1); user-select:none }
   .pr .t { display:flex; align-items:center; gap:var(--s2); height:20px; font:var(--t-caption-strong) }
   .pr .m { margin-top:var(--s2); font:var(--t-label); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
   .pr .d { position:absolute; left:var(--s3); bottom:var(--s3); font:var(--t-caption); color:var(--muted) }
 
-  .card { position:absolute; width:256px; height:128px; border-radius:var(--r2); padding:var(--s3); border:2px solid; cursor:grab; user-select:none; box-shadow:var(--e1); transition:box-shadow .12s }
+  .card { position:absolute; width:256px; height:128px; border-radius:var(--r2); padding:var(--s3); border:2px solid; cursor:pointer; user-select:none; box-shadow:var(--e1); transition:box-shadow .12s }
   .card:hover { box-shadow:var(--e3) }
   .card.sel,.pr.sel,.head.sel { box-shadow:0 0 0 4px rgba(79,70,229,.5), var(--e3) }
   .card.merge { border-width:3px }
@@ -132,6 +132,7 @@
   #side .meta { display:flex; align-items:center; gap:var(--s2); margin-top:var(--s4); color:var(--muted); font:var(--t-body) } #side .meta b { color:var(--ink); font:var(--t-label) } #side .meta span:last-child::before { content:"·"; margin-right:var(--s2) }
   #side .chips { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s2); margin-top:var(--s3) } #side .chips .pill { height:24px; padding:0 var(--s3) } #side .arrow { color:var(--faint); display:inline-flex; transform:rotate(-90deg) }
   #side .rows { margin-top:var(--s4); padding:var(--s1) var(--s4); border-radius:var(--r2); box-shadow:0 0 0 1px var(--line) inset } #side .r { display:flex; justify-content:space-between; align-items:center; gap:var(--s4); min-height:40px; padding:var(--s1) 0; border-top:1px solid var(--line) } #side .r:first-child { border-top:0 }
+  #side .r code { font-size:14px; line-height:20px }
   #side .r > span { color:var(--muted); flex:none } #side .r > div { display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap; justify-content:flex-end; text-align:right; word-break:break-word } #side .m { color:var(--muted); font-weight:400 }
   #side .mini { width:24px; height:24px; border-radius:var(--r1); display:grid; place-items:center; color:var(--faint) } #side .mini:hover { background:var(--fill); color:var(--ink) }
   #side .tiles { display:grid; grid-template-columns:1fr 1fr; gap:var(--s3); margin-top:var(--s4) }
@@ -218,12 +219,8 @@
   #toast { position:fixed; left:50%; bottom:var(--edge); transform:translateX(-50%); background:#14141c; color:#fff; height:var(--c); padding:0 var(--s4); border-radius:var(--pill); font:var(--t-label); z-index:20; display:none; align-items:center }
   /* top-right bar: icons only. The label slides open on hover or focus. Touch screens have no hover, so a wide touch screen shows the labels. */
   #zoom .tb { gap:0 } #zoom .tb .badge { margin-left:6px }
-  #zoom .tb.icon { width:auto; min-width:var(--c); padding:0 10px }
-  .tb .lbl i { font:var(--t-caption); font-style:normal; color:var(--faint); margin-left:var(--s2) }
-  .tb .lbl { display:inline-block; overflow:hidden; white-space:nowrap; max-width:0; opacity:0; margin-left:0; transition:max-width .2s ease, opacity .15s ease, margin-left .2s ease }
-  @media (hover:hover) { #zoom .tb:hover .lbl, #zoom .tb:focus-visible .lbl, #zoom .tb.on .lbl { max-width:120px; opacity:1; margin-left:var(--s2) } }
-  @media (hover:none) and (min-width:761px) { #zoom .tb .lbl { max-width:120px; opacity:1; margin-left:var(--s2) } }
-  @media (prefers-reduced-motion:reduce) { .tb .lbl { transition:none } }
+  #zoom .tb.icon { width:auto; min-width:var(--c); padding:0 var(--s3) }
+  .tb .lbl { white-space:nowrap; margin-left:var(--s2) }
   /* the numbers: inside the repo menu, with a green dot on the repo name when there are new commits */
   #repoStats { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s2) var(--s3); padding:var(--s3) var(--s4); margin-bottom:var(--s4); background:#f6f7f9; border-radius:var(--r2); font:var(--t-caption); color:var(--muted) }
   #repoStats:empty { display:none }
@@ -244,7 +241,7 @@
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol><symbol id="i-branch" viewBox="0 0 24 24"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol><symbol id="i-pr" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" x2="6" y1="9" y2="21"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol><symbol id="i-unfold" viewBox="0 0 24 24"><path d="M2 12h3M10.5 12h3M19 12h3"/><path d="m8 6 4-4 4 4"/><path d="m8 18 4 4 4-4"/></symbol><symbol id="i-fold" viewBox="0 0 24 24"><path d="M2 12h3M10.5 12h3M19 12h3"/><path d="m8 2 4 4 4-4"/><path d="m8 22 4-4 4 4"/></symbol><symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></symbol><symbol id="i-tidy" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol><symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5"/><path d="M12 8h.01"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol><symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol><symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol><symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol><symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol><symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/></symbol></defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol><symbol id="i-branch" viewBox="0 0 24 24"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol><symbol id="i-pr" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" x2="6" y1="9" y2="21"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><line x1="21" x2="14" y1="5" y2="5"/><line x1="10" x2="3" y1="5" y2="5"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="19" y2="19"/><line x1="12" x2="3" y1="19" y2="19"/><line x1="14" x2="14" y1="3" y2="7"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="17" y2="21"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol><symbol id="i-unfold" viewBox="0 0 24 24"><path d="M3 12h3M10.5 12h3M18 12h3"/><path d="m7 7 5-4 5 4"/><path d="m7 17 5 4 5-4"/></symbol><symbol id="i-fold" viewBox="0 0 24 24"><path d="M2 12h3M10.5 12h3M19 12h3"/><path d="m8 2 4 4 4-4"/><path d="m8 22 4-4 4 4"/></symbol><symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></symbol><symbol id="i-tidy" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol><symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol><symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol><symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol><symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol><symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol><symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol><symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol><symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol><symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol><symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/></symbol></defs></svg>
 <div id="viewport"><div id="world"><svg id="edges"></svg></div></div>
 <div id="empty"><div id="emptyMsg"></div></div>
 <div id="tl" class="float">
@@ -284,7 +281,7 @@
 
 <aside id="side" class="float"></aside>
 <div id="tip" role="tooltip"></div>
-<div id="zoom" class="float"><button class="tb" id="filtBtn" data-pop="filt" title="Filters"><svg class="i lg" aria-hidden="true"><use href="#i-filter"/></svg><span class="lbl">Filters</span><span class="badge" id="filtN" style="display:none"></span></button><button class="tb" id="expAll" title="Expand all"><svg class="i lg" aria-hidden="true"><use href="#i-unfold"/></svg><span class="lbl">Expand all</span></button><span class="sep"></span><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg><span class="lbl">Fit<i>F</i></span></button><button class="tb icon" id="tTidy" title="Tidy up: put every moved item back (T)" aria-label="Tidy up" style="display:none"><svg class="i lg" aria-hidden="true"><use href="#i-grid"/></svg><span class="lbl">Tidy up<i>T</i></span></button><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Git terms"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg><span class="lbl">Help<i>?</i></span></button></div>
+<div id="zoom" class="float"><button class="tb" id="filtBtn" data-pop="filt" title="Filters"><svg class="i lg" aria-hidden="true"><use href="#i-filter"/></svg><span class="lbl">Filters</span><span class="badge" id="filtN" style="display:none"></span></button><button class="tb" id="expAll" title="Expand all"><svg class="i lg" aria-hidden="true"><use href="#i-unfold"/></svg><span class="lbl">Expand all</span></button><span class="sep"></span><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg><span class="lbl">Fit</span></button><button class="tb icon" id="tTidy" title="Tidy up: put every moved item back (T)" aria-label="Tidy up" style="display:none"><svg class="i lg" aria-hidden="true"><use href="#i-grid"/></svg><span class="lbl">Tidy up</span></button><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Git terms"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg><span class="lbl">Help</span></button></div>
 <div id="toast"></div>
 
 <script>
@@ -507,7 +504,7 @@ function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
   };
   for (const ln of L.lanes) {
     const cf = ln.conflict, st = cf && cf.state;
-    let chips = ln.is_base ? '<span class="chip">main branch</span>' : ln.ahead === 0 ? `<span class="chip">${ico('check', 'xs')}Fully merged</span>` : `<span class="chip">${ico('arrow-up', 'xs')}${ln.ahead}</span>` + (ln.behind ? `<span class="chip">${ico('arrow-down', 'xs')}${ln.behind}</span>` : '');
+    let chips = ln.is_base ? '<span class="chip">main branch</span>' : ln.ahead === 0 ? `<span class="chip">${mergeOf(ln) || (ln.pr && ln.pr.state === 'MERGED') ? ico('check', 'xs') + 'Fully merged' : ln.behind ? 'Nothing new' : 'No commits yet'}</span>` : `<span class="chip">${ico('arrow-up', 'xs')}${ln.ahead}</span>` + (ln.behind ? `<span class="chip">${ico('arrow-down', 'xs')}${ln.behind}</span>` : '');
     if (!ln.is_base && ln.ahead) chips += st === 'conflict' ? `<span class="chip bad">${ico('alert', 'xs')}Conflict</span>` : st === 'possible' ? `<span class="chip warn">${ico('alert', 'xs')}May conflict</span>` : st === 'clean' ? `<span class="chip ok">${ico('check', 'xs')}Clean</span>` : '';
     if (ln.ci) chips += `<span class="chip ${CI[ln.ci.state][2]}">${ico(CI[ln.ci.state][0], 'xs')}CI</span>`;
     if (!ln.is_base && ageDays(ln) > 60) chips += `<span class="chip">${ico('clock', 'xs')}${Math.round(ageDays(ln) / 30)}mo</span>`;
@@ -608,7 +605,10 @@ function drawEdges() {
     const up = L.at[it.gap.last.hash], dn = L.at[it.gap.before.hash]; if (up) vert(it, up, ln.color, 3); if (dn) vert(dn, it, ln.color, 3);
   }
   for (const ln of L.lanes) {  // a branch's oldest commit plugs into the main line, and a merged branch points at its commit
-    if (ln.pinned) link(ln.headItem, ln.pinned, ln.color, 'stroke-dasharray="2 6"', ln.stackIdx || 0);
+    if (ln.pinned) {
+      link(ln.headItem, ln.pinned, ln.color, 'stroke-dasharray="2 6"', ln.stackIdx || 0);
+      const mc = mergeOf(ln), mi = mc && L.at[mc.hash]; if (mi && mi !== ln.pinned) link(mi, ln.headItem, ln.color, '', (ln.stackIdx || 0) + 1);
+    }
     else if (!ln.is_base && ln.cards.length && !ln.hiddenLocal && ln.mbm && L.at[ln.mbm]) {
       const o = ln.cards.reduce((m, k) => k.y > m.y ? k : m);
       if (!o.c.parents.some(p => L.at[p])) link(o, L.at[ln.mbm], ln.color, 'stroke-dasharray="7 6"', 0);
@@ -634,10 +634,16 @@ const ciStatus = ci => {
   const title = ci.state === 'failure' ? `${bad} check${bad > 1 ? 's' : ''} failed` : ci.state === 'pending' ? 'Checks running' : 'Checks passed';
   return `<details class="st ${c[2]}"${ci.state === 'failure' ? ' open' : ''}><summary>${ico(c[0])}<b>${title}${info('ci')}</b>${ci.checks.length ? ico('chevron-down', 'xs') : ''}</summary>${list}</details>`;
 };
+// The commit on main that brought a fully merged branch in: it has the branch's last commit as a second parent.
+const mergeOf = ln => ln.is_base || ln.ahead || !ln.mbm ? null : (data.lanes[0].commits || []).find(c => c.parents.length > 1 && c.parents.slice(1).includes(ln.mbm)) || null;
 function conflictStatus(ln) {
   const cf = ln.conflict, base = data.base; if (!cf || ln.is_base) return '';
   const n = cf.files.length;
-  if (cf.state === 'merged') return st('ok', 'check', 'Fully merged', `All of it is in <b>${esc(base)}</b>. Safe to delete.`, 'merged');
+  if (cf.state === 'merged') {
+    const mc = mergeOf(ln);
+    if (mc || (ln.pr && ln.pr.state === 'MERGED')) return st('ok', 'check', 'Fully merged', mc ? `Merged in <a class="link" data-goto="${esc(mc.hash)}"><code>${esc(mc.short)}</code></a>. Safe to delete.` : `All of it is in <b>${esc(base)}</b>. Safe to delete.`, 'merged');
+    return ln.behind ? st('info', 'info', 'Nothing new', `All its commits are already in <b>${esc(base)}</b>.`) : st('info', 'info', 'No commits yet', 'Nothing was saved on this branch.');
+  }
   if (cf.state === 'conflict') return st('bad', 'alert', `Merge conflict${n ? ` in ${n} file${n > 1 ? 's' : ''}` : ''}`, cf.source === 'pr' ? 'GitHub cannot merge this pull request.' : 'Both sides changed the same lines.', 'conflict');
   if (cf.state === 'possible') return st('warn', 'alert', 'May conflict', `${n} file${n > 1 ? 's' : ''} changed on both sides.`, 'conflict');
   if (cf.state === 'clean') return st('ok', 'check', 'Merges cleanly', '');
@@ -653,12 +659,15 @@ function inspect(key) {
   if (it.kind === 'card') {
     const c = it.c, merge = c.parents.length > 1, fork = ln.is_base && L.forkOf[c.hash], tg = (data.tags || {})[c.hash];
     const parents = c.parents.map(p => L.at[p] ? `<a class="link" data-goto="${esc(p)}"><code>${esc(L.at[p].c.short)}</code></a>` : `<code>${esc(p.slice(0, 7))}</code>`).join(' + ');
+    const mergedHere = c => { if (!ln.is_base || c.parents.length < 2) return '';
+      const set = new Set(L.lanes.filter(l => mergeOf(l) && mergeOf(l).hash === c.hash).concat(c.parents.slice(1).map(p => L.at[p] && L.at[p].ln).filter(l => l && !l.is_base)));
+      return [...set].map(laneChip).join(''); };
     band = band_(ln.color, 'Commit' + info('commit'), c.msg);
     const chips = laneChip(ln) + (merge ? `<span class="pill" style="background:var(--fill);color:var(--ink-2)">Merge${info('merge')}</span>` : '')
       + (tg || []).map(t => `<span class="pill" style="background:var(--fill);color:var(--ink-2)">${ico('tag', 'xs')}${esc(t)}</span>`).join('');
     body = `<div class="meta"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b><span title="${esc(fmtDate(c.date))}">${ago(c.ct)}</span></div>
       <div class="chips">${chips}</div>
-      <div class="rows">${row('Date', esc(fmtDate(c.date)))}${row('Commit ID' , `<code class="idc" data-copy="${esc(c.hash)}" title="Click to copy the full ID">${esc(c.short)}</code>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', fork && fork.map(esc).join(', '), 'split')}</div>
+      <div class="rows">${row('Date', esc(fmtDate(c.date)))}${row('Commit ID' , `<code class="idc" data-copy="${esc(c.hash)}" title="Click to copy the full ID">${esc(c.short)}</code>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', fork && fork.map(esc).join(', '), 'split')}${row('Merged in', mergedHere(c))}</div>
       ${it === ln.tip ? ciStatus(ln.ci) : ''}`;
   } else if (it.kind === 'pr') {
     const pr = it.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN, cf = ln.conflict;
@@ -1034,7 +1043,8 @@ async function staticApi(path, opts = {}) {
     const mx = Math.max(1, Math.min(100, +q.get('max') || 25)), ck = 'gc-cache-' + x.id + '-' + mx + (authed() ? '-t' : ''), hit = post ? null : store.get(ck, null);
     let g; if (hit && Date.now() - hit.t < 600000) g = hit.g; else { g = await buildGraph(x, mx); store.set(ck, { t: Date.now(), g }); }
     const cur2 = [...new Set(g.lanes.flatMap(l => l.commits.map(c => c.hash)))].sort(), key = 'gc-seen-' + x.id, prev = store.get(key, null);
-    g.fresh = prev ? cur2.filter(h => !prev.includes(h)) : []; if (post || !prev) store.set(key, cur2);
+    const wk = Date.now() / 1000 - 7 * 86400, ctOf = {}; g.lanes.forEach(l => l.commits.forEach(c => { ctOf[c.hash] = c.ct; }));  // NEW = not seen before AND made in the last 7 days
+    g.fresh = prev ? cur2.filter(h => !prev.includes(h) && ctOf[h] > wk) : []; if (post || !prev) store.set(key, cur2);
     return { repo: x.name, id: x.id, ...g };
   }
   throw new Error('Not found');
