@@ -65,6 +65,7 @@
   #loading i { width:20px; height:20px; border:3px solid var(--accent-bg); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite }
   @keyframes spin { to { transform:rotate(360deg) } }
   body.loading #loadbar { display:block } body.loading #loading { display:flex }
+  body.loading #viewport, body.loading #zoom, body.loading #side { pointer-events:none }  /* nothing behind the loading screen can be clicked */
   body.loading #world { opacity:.4 } #world { transition:opacity .2s }
   @media (prefers-reduced-motion:reduce) { #loadbar::after, #loading i { animation-duration:3s } }
   #zoom { right:var(--edge); top:var(--edge); height:var(--bar); display:flex; align-items:center; gap:var(--s1); padding:0 var(--s2) }
@@ -158,6 +159,7 @@
   .callout { border-radius:var(--r2); padding:var(--s4); margin-top:var(--s4) }
   .callout.info { background:var(--accent-bg) } .callout.ok { background:var(--okbg); color:#14532d } .callout.bad { background:var(--badbg); color:#7f1d1d } .callout.warn { background:var(--warnbg); color:#78350f }
   .tipbtn { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; margin-left:var(--s1); padding:0; border-radius:50%; color:var(--faint); background:none; border:0; cursor:help; vertical-align:middle; flex:none }
+  .pill .tipbtn,.chip .tipbtn { margin-left:0; margin-right:-6px; width:18px; height:18px }
   .tipbtn:hover,.tipbtn.on,.tipbtn:focus-visible { color:var(--accent); background:var(--accent-bg) } .tipbtn .i { width:14px; height:14px }
   #side .band .tipbtn { color:#fff; opacity:.85 } #side .band .tipbtn:hover,#side .band .tipbtn.on { background:rgba(255,255,255,.22); color:#fff; opacity:1 }
   #tip { position:fixed; z-index:20; width:264px; padding:var(--s3) var(--s4); border-radius:var(--r2); background:#14151a; color:#fff; font:var(--t-body); box-shadow:var(--e3); display:none }
@@ -276,7 +278,7 @@
 
 <aside id="side" class="float"></aside>
 <div id="tip" role="tooltip"></div>
-<div id="zoom" class="float"><button class="tb" id="filtBtn" data-pop="filt" title="Filters"><svg class="i lg" aria-hidden="true"><use href="#i-filter"/></svg><span class="lbl">Filters</span><span class="badge" id="filtN" style="display:none"></span></button><button class="tb" id="expAll" title="Expand all"><svg class="i lg" aria-hidden="true"><use href="#i-unfold"/></svg><span class="lbl">Expand all</span></button><span class="sep"></span><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg><span class="lbl">Fit</span></button><button class="tb icon" id="tTidy" title="Tidy up: put every moved item back (T)" aria-label="Tidy up" style="display:none"><svg class="i lg" aria-hidden="true"><use href="#i-grid"/></svg><span class="lbl">Tidy up</span></button><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Git terms"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg><span class="lbl">Help</span></button></div>
+<div id="zoom" class="float"><button class="tb" id="expAll" title="Expand all"><svg class="i lg" aria-hidden="true"><use href="#i-unfold"/></svg><span class="lbl">Expand all</span></button><button class="tb icon" id="tFit" title="Fit everything (F)" aria-label="Fit"><svg class="i lg" aria-hidden="true"><use href="#i-fit"/></svg><span class="lbl">Fit</span></button><button class="tb icon" id="tTidy" title="Tidy up: put every moved item back (T)" aria-label="Tidy up" style="display:none"><svg class="i lg" aria-hidden="true"><use href="#i-grid"/></svg><span class="lbl">Tidy up</span></button><span class="sep"></span><button class="tb icon" id="filtBtn" data-pop="filt" title="Filters" aria-label="Filters"><svg class="i lg" aria-hidden="true"><use href="#i-filter"/></svg><span class="badge" id="filtN" style="display:none"></span></button><button class="tb icon" id="tHelp" title="Git terms and how to read the map (?)" aria-label="Help"><svg class="i lg" aria-hidden="true"><use href="#i-info"/></svg></button></div>
 <div id="toast"></div>
 
 <script>
@@ -335,7 +337,7 @@ const ageDays = ln => ln.commits.length ? (nowS() - ln.commits[0].ct) / DAY : 0;
 // ---------- state ----------
 let view = { x: 120, y: 100, k: 1 }, data = null, repos = [], cur = store.get('gc-repo', null), L = null, selKey = null;
 let laneOrder = [];  // user's column order (names), set by dragging a branch title
-let openedRepo = null, expanded = new Set(), offs = {}, flt = { max: 25, stale: 0, merged: false, conf: false, ...store.get('gc-filters', {}) };
+let openedRepo = null, expanded = new Set(), offs = {}, flt = { max: 100, stale: 0, merged: false, conf: false, ...store.get('gc-filters', {}) };
 try { Object.keys(localStorage).filter(k => k.startsWith('gc-exp-')).forEach(k => localStorage.removeItem(k)); } catch { /* ignore */ }
 const expKey = () => 'gc-exp-' + cur, offKey = () => 'gc-off2-' + cur, ordKey = () => 'gc-order-' + cur;
 
@@ -355,7 +357,7 @@ function layout() {
     if (ln.is_base) {
       // The main branch is condensed: the newest commits, every fork point and every tagged release stay visible, down to the deepest fork point.
       // Each run of commits between two visible ones folds into one "Show N hidden commits" pill, so every branch still hangs off its commit.
-      const forks = lanes.filter(l => !l.is_base && l.mbm in baseIdx).map(l => baseIdx[l.mbm]);
+      const forks = lanes.filter(l => !l.is_base && l.mbm in baseIdx).map(l => baseIdx[l.mbm]).concat(lanes.filter(l => l.virtual && l.mergedIn in baseIdx).map(l => baseIdx[l.mergedIn]));
       const deep = Math.min(all.length - 1, Math.max(START - 1, ...forks, 0)), keep = new Set();
       for (let i = 0; i <= Math.min(START - 1, all.length - 1); i++) keep.add(i);
       forks.forEach(i => keep.add(i)); all.forEach((c, i) => { if (i <= deep && (data.tags || {})[c.hash]) keep.add(i); });
@@ -438,9 +440,10 @@ function layout() {
       if (ln.pr) { y -= PRH + GAP; ln.prItem = add('pr:' + ln.name, 'pr', ln, ln.x, y, CW, PRH, { pr: ln.pr }); } headY = y - GAP - HEAD_H; }
     ln.headItem = add('head:' + ln.name, 'head', ln, ln.x, headY, CW, HEAD_H);
     const lowest = ln.cards.length ? Math.max(...ln.cards.map(k => k.y)) : y0;
-    ln.moreItem = null;
+    ln.moreItem = null; ln.histItem = null;
     if (ln.hiddenLocal > 0 || ln.tailOpen || (ln.open && ln.commits.length > START) || (ln.more || 0) !== 0)
       ln.moreItem = add('more:' + ln.name, 'more', ln, ln.x, lowest + CH + GAP, CW, 40);
+    ln.histItem = ln.is_base && ln.more < 0 && (ln.tailOpen || ln.open) ? add('hist:' + ln.name, 'more', ln, ln.x, lowest + CH + GAP + (ln.moreItem ? 40 + GAP : 0), CW, 40) : null;
   }
   return { lanes, items, forkOf, at: Object.fromEntries(Object.values(items).filter(i => i.kind === 'card').map(i => [i.c.hash, i])), row };
 }
@@ -499,7 +502,7 @@ function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
   };
   for (const ln of L.lanes) {
     const cf = ln.conflict, st = cf && cf.state;
-    let chips = ln.is_base ? '<span class="chip">main branch</span>' : ln.ahead === 0 ? `<span class="chip">${mergeOf(ln) || (ln.pr && ln.pr.state === 'MERGED') ? ico('check', 'xs') + 'Fully merged' : ln.behind ? 'Nothing new' : 'No commits yet'}</span>` : `<span class="chip">${ico('arrow-up', 'xs')}${ln.ahead}</span>` + (ln.behind ? `<span class="chip">${ico('arrow-down', 'xs')}${ln.behind}</span>` : '');
+    let chips = ln.is_base ? '<span class="chip">main branch</span>' : ln.virtual ? `<span class="chip">${ico('check', 'xs')}Merged</span>` : ln.ahead === 0 ? `<span class="chip">${mergeOf(ln) || (ln.pr && ln.pr.state === 'MERGED') ? ico('check', 'xs') + 'Fully merged' : ln.behind ? 'Nothing new' : 'No commits yet'}</span>` : `<span class="chip">${ico('arrow-up', 'xs')}${ln.ahead}</span>` + (ln.behind ? `<span class="chip">${ico('arrow-down', 'xs')}${ln.behind}</span>` : '');
     if (!ln.is_base && ln.ahead) chips += st === 'conflict' ? `<span class="chip bad">${ico('alert', 'xs')}Conflict</span>` : st === 'possible' ? `<span class="chip warn">${ico('alert', 'xs')}May conflict</span>` : st === 'clean' ? `<span class="chip ok">${ico('check', 'xs')}Clean</span>` : '';
     if (ln.ci) chips += `<span class="chip ${CI[ln.ci.state][2]}">${ico(CI[ln.ci.state][0], 'xs')}CI</span>`;
     if (!ln.is_base && ageDays(ln) > 60) chips += `<span class="chip">${ico('clock', 'xs')}${Math.round(ageDays(ln) / 30)}mo</span>`;
@@ -511,7 +514,7 @@ function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
     }
   }
   for (const it of Object.values(L.items)) if (it.kind === 'card') {
-    const c = it.c, ln = it.ln, merge = c.parents.length > 1, fork = ln.is_base && L.forkOf[c.hash];
+    const c = it.c, ln = it.ln, merge = c.parents.length > 1, fork = L.forkOf[c.hash];
     const tag = merge ? `<span class="tag" style="color:${ln.color}">MERGE</span>` : fork ? `<span class="tag" style="color:#475569" title="${esc(fork.join(', '))} started from this commit">SPLIT</span>` : '';
     const d = mk(it, `card${merge ? ' merge' : ''}${fresh.has(c.hash) ? ' fresh' : ''}`,
       `${tagsHtml(c.hash)}<div class="r1"><span class="h" style="color:${ln.color}">${esc(c.short)}</span><span>${it === ln.tip ? ciDot(ln.ci) : ''}${esc(fmtDate(c.date))}</span></div><div class="m">${esc(c.msg)}</div>
@@ -530,8 +533,10 @@ function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
     if (ln.tailOpen) { const d = mk(it, 'more', `${ico('chevron-up')}Hide ${ln.tailCount} older commit${ln.tailCount > 1 ? 's' : ''}`); d.style.borderColor = d.style.color = ln.color; d.onclick = () => toggleTail(ln.name); }
     else if (hid > 0) { const d = mk(it, 'more', `${ico('chevron-down')}Show ${hid} older commit${hid > 1 ? 's' : ''}`); d.style.borderColor = d.style.color = ln.color; d.onclick = () => ln.is_base ? toggleTail(ln.name) : toggleLane(ln.name); }
     else if (ln.open && ln.commits.length > START) { const d = mk(it, 'more', ico('chevron-up') + 'Collapse'); d.style.borderColor = d.style.color = ln.color; d.onclick = () => toggleLane(ln.name); }
+    else if (ln.is_base && ln.more < 0) { const d = mk(it, 'more', `${ico('chevron-down')}Load older history`); d.style.borderColor = d.style.color = ln.color; d.title = 'Read 1,000 more commits of ' + ln.name + ' from GitHub'; d.onclick = () => { histBy[cur] = (histBy[cur] || 0) + 10; openRepo(false); }; }
     else mk(it, 'more note', `${ln.more > 0 ? '+' + ln.more + ' even older not loaded' : 'Older history not loaded'}${data.github ? ' (GitHub API limit)' : ''}`);
   }
+  for (const ln of L.lanes) if (ln.histItem) { const d = mk(ln.histItem, 'more', `${ico('chevron-down')}Load older history`); d.style.borderColor = d.style.color = ln.color; d.title = 'Read 1,000 more commits of ' + ln.name + ' from GitHub'; d.onclick = () => { histBy[cur] = (histBy[cur] || 0) + 10; expanded.delete('tail:' + ln.name); draw(false); openRepo(false); }; }  // fold the long tail first, so the page stays light while it loads
   for (const k of Object.keys(els)) if (!seenKeys.has(k)) { const d = els[k]; delete els[k]; d.style.opacity = 0; d.style.pointerEvents = 'none'; setTimeout(() => d.remove(), 260); }
   world.appendChild(frag);
   if (selKey && els[selKey]) els[selKey].classList.add('sel');
@@ -568,6 +573,7 @@ function drawEdges() {
     for (let i = 0; i < chain.length - 1; i++) vert(chain[i + 1], chain[i], ln.color, 3, i === 0 && chain.length === 3 ? null : null);
     if (ln.moreItem && ln.cards.length) vert(ln.moreItem, ln.cards.reduce((m, k) => k.y > m.y ? k : m), '#b8bcc6', 2.5, '4 5');
   }
+  const pend = [];
   const link = (child, par, color, dash, idx) => {  // cross-branch connector (fork, merge, or collapsed-history)
     const C = rectOf(child), P = rectOf(par);
     if (isMoved(child) || isMoved(par)) {  // free-form: smooth curve
@@ -580,12 +586,24 @@ function drawEdges() {
       out += `<path d="M${ax} ${ay} L${bx} ${ay}" stroke="${color}" stroke-width="2.5" fill="none" ${dash} stroke-linecap="round"/>`;
       out += `<circle cx="${ax}" cy="${ay}" r="4.5" fill="${color}"/><circle cx="${bx}" cy="${ay}" r="4.5" fill="${color}"/>`; return;
     }
-    // tidy: out of the side facing the other column, along the free gap between rows, into the other card's side
-    const right = P.x > C.x, ax = C.x + (right ? C.w : 0), bx = P.x + (right ? 0 : P.w), dir = right ? 1 : -1, ay = C.y + C.h / 2, by = P.y + P.h / 2;
-    const gy = Math.max(C.y, P.y) - (ROWY - CH) / 2, gx1 = ax + dir * 16, gx2 = bx - dir * 16, o = (idx + (child.ln.col % 4)) * UNIT;
-    const pts = [[ax, ay], [gx1 + dir * o, ay], [gx1 + dir * o, gy], [gx2 - dir * o, gy], [gx2 - dir * o, by], [bx, by]];
-    out += `<path d="${rounded(pts, 12)}" stroke="${color}" stroke-width="2.5" fill="none" ${dash} stroke-linecap="round" stroke-linejoin="round"/>`;
-    out += `<circle cx="${ax}" cy="${ay}" r="4.5" fill="${color}"/><circle cx="${bx}" cy="${by}" r="4.5" fill="${color}"/>`;
+    pend.push({ child, par, color, dash, C, P });  // tidy connectors wait: the ones that share a gap between rows each get their own lane
+  };
+  const flushLinks = () => {
+    const dist = l => Math.abs((l.P.x + l.P.w / 2) - (l.C.x + l.C.w / 2)), byGap = {}, byPar = {};
+    for (const l of pend) { l.gy = Math.max(l.C.y, l.P.y) - (ROWY - CH) / 2; (byGap[Math.round(l.gy)] ||= []).push(l); (byPar[l.par.key] ||= []).push(l); }
+    const GAPH = ROWY - CH;
+    const used = {};  // at most 3 lanes in one gap between rows; more spill into the next gap down, so lines never pile up
+    for (const key of Object.keys(byGap).map(Number).sort((p, q) => p - q)) { const g = byGap[key]; g.sort((p, q) => dist(p) - dist(q));  // near ones first (higher), far ones lower: no crossing
+      for (const l of g) { let at = l.gy; while ((used[Math.round(at)] || 0) >= 3) at += ROWY; l.at = Math.round(at); l.k = used[l.at] = (used[l.at] || 0); used[l.at]++; } }
+    for (const l of pend) l.lane = l.at - GAPH / 2 + (l.k + 1) * GAPH / (used[l.at] + 1);
+    for (const g of Object.values(byPar)) { g.sort((p, q) => dist(p) - dist(q)); g.forEach((l, k) => { l.o2 = k * UNIT; }); }
+    for (const l of pend) {
+      const { C, P } = l, right = P.x > C.x, ax = C.x + (right ? C.w : 0), bx = P.x + (right ? 0 : P.w), dir = right ? 1 : -1, ay = C.y + C.h / 2, by = P.y + P.h / 2;
+      const gx1 = ax + dir * 16, gx2 = bx - dir * 16;
+      const pts = [[ax, ay], [gx1, ay], [gx1, l.lane], [gx2 - dir * l.o2, l.lane], [gx2 - dir * l.o2, by], [bx, by]];
+      out += `<path d="${rounded(pts, 12)}" stroke="${l.color}" stroke-width="2.5" fill="none" ${l.dash} stroke-linecap="round" stroke-linejoin="round"/>`;
+      out += `<circle cx="${ax}" cy="${ay}" r="4.5" fill="${l.color}"/><circle cx="${bx}" cy="${by}" r="4.5" fill="${l.color}"/>`;
+    }
   };
   for (const k of Object.values(L.items)) if (k.kind === 'card') k.c.parents.forEach((p, idx) => {
     const par = L.at[p]; if (!par) return;
@@ -610,7 +628,7 @@ function drawEdges() {
     }
   }
   for (const ln of L.lanes) if (ln.moreItem && ln.hiddenLocal > 0 && ln.mbm && L.at[ln.mbm] && L.at[ln.mbm].ln !== ln) link(ln.moreItem, L.at[ln.mbm], ln.color, 'stroke-dasharray="2 6"', 0);
-  edges.innerHTML = out; edges.setAttribute('width', 1); edges.setAttribute('height', 1);
+  flushLinks(); edges.innerHTML = out; edges.setAttribute('width', 1); edges.setAttribute('height', 1);
 }
 
 // ---------- inspector ----------
@@ -655,7 +673,7 @@ function inspect(key) {
   const sh = x => esc(String(x).slice(0, 7));
   const prPill = pr => { const c = PRS[prState(pr)] || PRS.OPEN; return `<span class="pill" style="background:${c[1]};color:${c[0]}">${c[2]}</span>`; };
   if (it.kind === 'card') {
-    const c = it.c, merge = c.parents.length > 1, fork = ln.is_base && L.forkOf[c.hash], tg = (data.tags || {})[c.hash];
+    const c = it.c, merge = c.parents.length > 1, fork = L.forkOf[c.hash], tg = (data.tags || {})[c.hash];
     const parents = c.parents.map(cref).join(' + ');
     const forks = (fork || []).map(n => L.lanes.find(x => x.name === n)), exact = forks.filter(l => l && l.mb === c.hash).map(l => l.name), inside = forks.filter(l => l && l.mb !== c.hash).map(l => l.name);
     const mergedHere = c => { if (!ln.is_base || c.parents.length < 2) return '';
@@ -678,6 +696,10 @@ function inspect(key) {
       <div class="tiles"><div class="tile"><b>${ln.ahead}</b><span>Commit${ln.ahead === 1 ? '' : 's'}</span></div><div class="tile"><b>${nfiles == null ? '-' : nfiles}</b><span>File${nfiles === 1 ? '' : 's'} changed</span></div></div>
       ${rv && pr.state === 'OPEN' ? st(rv[1], rv[2], rv[0], '') : ''}${pr.state === 'OPEN' ? conflictStatus(ln) : ''}${ciStatus(ln.ci)}
       ${pr.url ? `<a class="btn primary" href="${esc(pr.url)}" target="_blank" rel="noopener">${ico('github')}Open on GitHub${ico('external', 'xs')}</a>` : ''}`;
+  } else if (ln.virtual) {
+    band = band_(ln.color, 'Merged work' + info('merge'), ln.name);
+    body = `<div class="rows">${row('Merged in', cref(ln.mergedIn))}${row('Split from', ln.mb ? cref(ln.mb) : '')}${row('Commits', String(ln.commits.length))}${ln.commits.length ? row('Last commit', ago(ln.commits[0].ct)) : ''}</div>
+      ${st('ok', 'check', 'Fully merged', 'These commits came into <b>' + esc(base) + '</b> with the merge commit.', 'merged')}`;
   } else {
     const cf = ln.conflict, tot = ln.ahead + ln.behind;
     band = band_(ln.color, (ln.is_base ? 'Main branch' : 'Branch') + info(ln.is_base ? 'main' : 'branch'), ln.name);
@@ -746,9 +768,9 @@ const seg = (id, opts, key, onchange) => {
 };
 const syncFilters = () => {
   $('fMerged').classList.toggle('on', flt.merged); $('fConf').classList.toggle('on', flt.conf);
-  const n = (flt.stale ? 1 : 0) + (flt.merged ? 1 : 0) + (flt.conf ? 1 : 0) + (flt.max !== 25 ? 1 : 0);
+  const n = (flt.stale ? 1 : 0) + (flt.merged ? 1 : 0) + (flt.conf ? 1 : 0) + (flt.max !== 100 ? 1 : 0);
   $('filtN').style.display = n ? '' : 'none'; $('filtN').textContent = n;
-  if (data) { const total = data.lanes.length - 1, shown = L ? L.lanes.length - 1 : total; $('fSummary').textContent = `${shown} of ${total} loaded branches are visible.` + (data.skipped ? ` ${data.skipped} older branches are not loaded. Increase "Load up to" to load them.` : '') + (!authed() && flt.max > 12 ? ' Without a GitHub login, Map Git loads 12 branches at most. To load more, run "gh auth login" in your terminal.' : ''); }
+  if (data) { const real = a => a.filter(l => !l.is_base && !l.virtual).length, total = real(data.lanes), shown = L ? real(L.lanes) : total; $('fSummary').textContent = `${shown} of ${total} loaded branches are visible.` + (data.skipped ? ` ${data.skipped} older branches are not loaded. Increase "Load up to" to load them.` : '') + (!authed() && flt.max > 12 ? ' Without a GitHub login, Map Git loads 12 branches at most. To load more, run "gh auth login" in your terminal.' : ''); }
 };
 const applyFilters = () => { store.set('gc-filters', flt); if (data) { draw(); syncFilters(); updateStatus(); } };
 seg('fMax', [[10, '10'], [25, '25'], [50, '50'], [100, '100']], 'max', () => { syncFilters(); openRepo(false); });
@@ -803,7 +825,7 @@ vp.addEventListener('wheel', e => {
   else { view.x -= e.deltaX; view.y -= e.deltaY; applyView(); }
 }, { passive: false });
 window.addEventListener('keydown', e => {
-  if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || document.body.classList.contains('loading')) return;
   if (e.key === '+' || e.key === '=') zoomAt(vp.clientWidth / 2, vp.clientHeight / 2, view.k * 1.25); else if (e.key === '-' || e.key === '_') zoomAt(vp.clientWidth / 2, vp.clientHeight / 2, view.k / 1.25); else if (e.key === 'f') fit(); else if (e.key === 'n') goNewest(); else if (e.key === 't') $('tTidy').click(); else if (e.key === '?') $('tHelp').click(); else if (e.key === 'Escape') { hideTip(); deselect(); closePops(); $('help').classList.remove('open'); }
 });
 
@@ -842,7 +864,7 @@ const busy = (on, msg) => { $('reload').disabled = on; document.body.classList.t
 // The numbers (branches, commits, new). They show in the repo menu, as a dot on the repo name, and in a bubble when you point at the name.
 let stats = null;
 const updateStatus = () => {
-  const d = data, n = d.lanes.reduce((a, l) => a + l.commits.length, 0), f = (d.fresh || []).length, shown = L.lanes.length - 1, tot = d.lanes.length - 1;
+  const d = data, n = d.lanes.reduce((a, l) => a + l.commits.length, 0), f = (d.fresh || []).length, real = a => a.filter(l => !l.is_base && !l.virtual).length, shown = real(L.lanes), tot = real(d.lanes);
   stats = { n, f, shown, tot, conf: d.lanes.filter(l => l.conflict && l.conflict.state === 'conflict').length, bad: d.lanes.filter(l => l.ci && l.ci.state === 'failure').length, skipped: d.skipped || 0, left: !authed() && rate.remaining != null && rate.remaining < 15 ? rate.remaining : null };
   renderStats();
 };
@@ -860,6 +882,7 @@ const showStatsTip = () => {
 };
 $('repoBtn').addEventListener('mouseenter', showStatsTip); $('repoBtn').addEventListener('mouseleave', hideTip); $('repoBtn').addEventListener('click', hideTip);
 
+const histBy = {};  // per repo: how many extra 100-commit pages of main history you asked for
 const effMax = () => authed() ? flt.max : Math.min(flt.max, 12);  // without a sign-in, stay well inside GitHub's free 60 requests/hour
 const showStart = () => {  // no repository yet: the canvas itself is the home page, with the repository menu open
   clearBoard(); data = null; L = null; document.body.classList.add('empty'); $('emptyMsg').textContent = 'Paste a link to a GitHub repository'; $('empty').style.display = 'grid';
@@ -870,7 +893,7 @@ const openRepo = async reload => {
   if (!cur) return showStart();
   busy(true, (reload ? 'Reading ' : 'Loading ') + (((repos.find(r => r.id === cur) || {}).name) || 'the repository') + '…');
   try {
-    const d = await api(`api/graph?repo=${encodeURIComponent(cur)}&max=${effMax()}`, { method: reload ? 'POST' : 'GET' });
+    const d = await api(`api/graph?repo=${encodeURIComponent(cur)}&max=${effMax()}&hist=${histBy[cur] || 0}`, { method: reload ? 'POST' : 'GET' });
     data = d; data.github = (repos.find(r => r.id === cur) || {}).kind === 'github';
     if (openedRepo !== cur) expanded = new Set(); openedRepo = cur;  // a repository always opens collapsed; Reload keeps what you opened
     offs = store.get(offKey(), {}); laneOrder = store.get(ordKey(), []); deselect(); closePops();
@@ -959,7 +982,7 @@ function ciFromGraphql(roll) {
   return { state, checks: checks.slice(0, 25) };
 }
 const mapC = c => { const iso = (c.commit.committer && c.commit.committer.date) || c.commit.author.date; return { hash: c.sha, short: c.sha.slice(0, 7), msg: (c.commit.message || '').split('\n')[0], author: (c.commit.author && c.commit.author.name) || (c.author && c.author.login) || '?', date: iso.slice(0, 10), ct: Math.floor(Date.parse(iso) / 1000), parents: c.parents.map(p => p.sha), unpushed: false }; };
-const walk = (nodes, tip) => { const out = []; let h = tip; while (h && nodes[h] && out.length < 1000) { out.push(nodes[h]); h = nodes[h].parents[0]; } return out; };  // first-parent chain
+const walk = (nodes, tip) => { const out = []; let h = tip; while (h && nodes[h] && out.length < 6000) { out.push(nodes[h]); h = nodes[h].parents[0]; } return out; };  // first-parent chain
 const attachNodes = (mb, chain, nodes) => {  // oldest main-line commit that contains mb (mb itself when it is on the line); walks side parents
   if (!mb) return null; if (chain.some(c => c.hash === mb)) return mb;
   for (let i = chain.length - 1; i >= 0; i--) { const seen = new Set(), st = [chain[i].hash]; while (st.length) { const x = st.pop(); if (x === mb) return chain[i].hash; if (seen.has(x) || !nodes[x]) continue; seen.add(x); st.push(...nodes[x].parents); } }
@@ -969,7 +992,7 @@ const encRef = s => s.split('/').map(encodeURIComponent).join('/');
 
 const infoMemo = {};
 async function repoInfo(R) { const m = infoMemo[R]; if (m && Date.now() - m.t < 60000) return m.v; const v = await ghReq(R); infoMemo[R] = { t: Date.now(), v }; return v; }
-async function buildGraph(x, max) {
+async function buildGraph(x, max, hx = 0) {
   const o = x.owner, n = x.repo, R = `/repos/${o}/${n}`, info = await repoInfo(R), base = info.default_branch, hasTok = authed();
   const prRaw = await ghReq(`${R}/pulls?state=all&sort=updated&direction=desc&per_page=100`).catch(e => { noRate(e); return []; }), prs = {};
   for (const p of prRaw) if (!(p.head.repo && p.head.repo.full_name !== info.full_name) && !prs[p.head.ref])
@@ -1000,14 +1023,28 @@ async function buildGraph(x, max) {
     const cs = c.commits && c.commits.length ? walk(nodes, c.commits[c.commits.length - 1].sha) : [];
     lanes.push({ name, is_base: false, tip: tipOf[name] || null, mb: (c.merge_base_commit || {}).sha || null, ahead: c.ahead_by, behind: c.behind_by, more: Math.max(0, c.ahead_by - (c.commits || []).length), upstream: 'GitHub', track: '', conflict: null, ci: ciBy[name] || null, pr: prs[name] || null, commits: cs, _files: (c.files || []).map(f => f.filename) });
   });
-  // main history is limited to the newest 100 commits; if some fork point is older, page further back (up to 300) so those branches can connect
-  const unplaced = () => lanes.some(l => !l.is_base && l.mb && !attachNodes(l.mb, bchain, baseNodes));
-  for (let page = 2; page <= 3 && fullPage && unplaced(); page++) {
+  // Main history: the newest 100 commits first. Signed in, read up to 2,000 (one request per 100). Not signed in, go further back (up to 300)
+  // only when a branch needs it, to protect GitHub's free 60 requests an hour. "Load older history" adds 1,000 more each time.
+  const unplaced = () => lanes.some(l => !l.is_base && l.mb && !attachNodes(l.mb, bchain, baseNodes)), maxPages = (hasTok ? 20 : 3) + hx;
+  for (let page = 2; page <= maxPages && fullPage && (hasTok || hx || unplaced()); page++) {
     const more = await ghReq(`${R}/commits?sha=${encodeURIComponent(base)}&per_page=100&page=${page}`).catch(e => { noRate(e); return []; });
     more.forEach(c => { const m = mapC(c); baseNodes[m.hash] = m; hist.push(c); }); fullPage = more.length >= 100; bchain = walk(baseNodes, hist[0].sha);
   }
   lanes[0].commits = bchain; lanes[0].more = fullPage ? -1 : 0;
-  for (const l of lanes) if (!l.is_base) l.mb_main = attachNodes(l.mb, bchain, baseNodes);
+  // Work that came in through a merge commit has no place on main's first-parent line. Give each such merge its own column of "merged" commits,
+  // so you can see what was merged, where it split off, and where it joined main.
+  const onLine = new Set(bchain.map(c => c.hash)), taken = new Set(), sideLanes = [], sideAt = {};
+  for (const m of bchain) if (m.parents.length > 1) for (const p of m.parents.slice(1)) {
+    if (onLine.has(p) || taken.has(p) || !baseNodes[p]) continue;
+    const side = []; let h = p;
+    while (h && baseNodes[h] && !onLine.has(h) && !taken.has(h) && side.length < START) { side.push(baseNodes[h]); taken.add(h); h = baseNodes[h].parents[0]; }
+    if (!side.length) continue;
+    const nm = (/from\s+(\S+)/.exec(m.msg) || /[Mm]erge branch '([^']+)'/.exec(m.msg) || [])[1], short = nm ? nm.split('/').slice(-1)[0] : 'merged work';
+    sideLanes.push({ name: lanes.some(l => l.name === short) || sideLanes.some(l => l.name === short) ? short + ' (merged)' : short, is_base: false, virtual: true, mergedIn: m.hash, tip: p, mb: side[side.length - 1].parents[0] || null, ahead: 0, behind: 0, more: 0, upstream: 'GitHub', track: '', conflict: { state: 'merged', files: [], changed: [], source: 'files' }, ci: null, pr: null, commits: side });
+    side.forEach(c => { sideAt[c.hash] = true; });
+  }
+  lanes.splice(1, 0, ...sideLanes);
+  for (const l of lanes) if (!l.is_base) l.mb_main = l.virtual || !sideAt[l.mb] ? attachNodes(l.mb, bchain, baseNodes) : l.mb;
   // conflicts: GitHub's own verdict for open PRs, otherwise files changed on BOTH sides of the fork
   await pool(lanes.filter(l => !l.is_base && l.pr && l.pr.state === 'OPEN' && l.ahead).slice(0, hasTok || (rate.remaining ?? 60) >= 35 ? 8 : 0), 6, async l => {
     try { const p = await ghReq(`${R}/pulls/${l.pr.number}`); l.pr.mergeable = p.mergeable === true ? 'MERGEABLE' : p.mergeable === false ? 'CONFLICTING' : null; } catch (e) { noRate(e); }
@@ -1038,8 +1075,8 @@ async function staticApi(path, opts = {}) {
   if (p === '/api/repos') return { repos: list() };
   if (p === '/api/graph') {
     const x = list().find(y => y.id === q.get('repo')); if (!x) throw new Error('Add a repository first.');
-    const mx = Math.max(1, Math.min(100, +q.get('max') || 25)), ck = 'gc-cache-' + x.id + '-' + mx + (authed() ? '-t' : ''), hit = post ? null : store.get(ck, null);
-    let g; if (hit && Date.now() - hit.t < 600000) g = hit.g; else { g = await buildGraph(x, mx); store.set(ck, { t: Date.now(), g }); }
+    const mx = Math.max(1, Math.min(100, +q.get('max') || 25)), hx = Math.max(0, Math.min(40, +q.get('hist') || 0)), ck = 'gc-cache-' + x.id + '-' + mx + '-h' + hx + (authed() ? '-t' : ''), hit = post ? null : store.get(ck, null);
+    let g; if (hit && Date.now() - hit.t < 600000) g = hit.g; else { g = await buildGraph(x, mx, hx); store.set(ck, { t: Date.now(), g }); }
     const cur2 = [...new Set(g.lanes.flatMap(l => l.commits.map(c => c.hash)))].sort(), key = 'gc-seen-' + x.id, prev = store.get(key, null);
     const wk = Date.now() / 1000 - 7 * 86400, ctOf = {}; g.lanes.forEach(l => l.commits.forEach(c => { ctOf[c.hash] = c.ct; }));  // NEW = not seen before AND made in the last 7 days
     g.fresh = prev ? cur2.filter(h => !prev.includes(h) && ctOf[h] > wk) : []; if (post || !prev) store.set(key, cur2);
