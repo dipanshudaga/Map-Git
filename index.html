@@ -133,6 +133,7 @@
   #side .chips { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s2); margin-top:var(--s3) } #side .chips .pill { height:24px; padding:0 var(--s3) } #side .arrow { color:var(--faint); display:inline-flex; transform:rotate(-90deg) }
   #side .rows { margin-top:var(--s4); padding:var(--s1) var(--s4); border-radius:var(--r2); box-shadow:0 0 0 1px var(--line) inset } #side .r { display:flex; justify-content:space-between; align-items:center; gap:var(--s4); min-height:40px; padding:var(--s1) 0; border-top:1px solid var(--line) } #side .r:first-child { border-top:0 }
   #side .r code { font-size:14px; line-height:20px }
+  #side .r.w { flex-direction:column; align-items:flex-start; gap:var(--s2); padding:var(--s3) 0 } #side .r.w > div { justify-content:flex-start; text-align:left }
   #side .r > span { color:var(--muted); flex:none } #side .r > div { display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap; justify-content:flex-end; text-align:right; word-break:break-word } #side .m { color:var(--muted); font-weight:400 }
   #side .mini { width:24px; height:24px; border-radius:var(--r1); display:grid; place-items:center; color:var(--faint) } #side .mini:hover { background:var(--fill); color:var(--ink) }
   #side .tiles { display:grid; grid-template-columns:1fr 1fr; gap:var(--s3); margin-top:var(--s4) }
@@ -222,11 +223,6 @@
   #zoom .tb.icon { width:auto; min-width:var(--c); padding:0 var(--s3) }
   .tb .lbl { white-space:nowrap; margin-left:var(--s2) }
   /* the numbers: inside the repo menu, with a green dot on the repo name when there are new commits */
-  #repoStats { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s2) var(--s3); padding:var(--s3) var(--s4); margin-bottom:var(--s4); background:#f6f7f9; border-radius:var(--r2); font:var(--t-caption); color:var(--muted) }
-  #repoStats:empty { display:none }
-  #repoStats .st b { font:var(--t-label); color:var(--ink); font-variant-numeric:tabular-nums }
-  #repoStats .st.new { background:var(--okbg); color:var(--ok); padding:2px 10px; border-radius:var(--pill); font:var(--t-caption-strong) } #repoStats .st.new b { color:var(--ok); font:var(--t-caption-strong) }
-  #repoStats .st.bad, #repoStats .st.bad b { color:var(--bad) } #repoStats .st.warn, #repoStats .st.warn b { color:var(--warn) }
   .rb .newdot { width:8px; height:8px; border-radius:50%; background:var(--ok); flex:none; box-shadow:0 0 0 2px var(--fill) }
   /* phone: the brand card stays at the top, the tools bar goes to the bottom under the thumb, both centred */
   @media (max-width:760px) {
@@ -253,7 +249,6 @@
 <div id="loading" role="status" aria-live="polite"><i></i><span id="loadmsg">Loading…</span></div>
 
 <div id="pop" class="float pop caret">
-  <div id="repoStats" role="status"></div>
   <div class="in"><input type="text" id="src" placeholder="owner/repo or github.com URL" spellcheck="false" autocomplete="off"><button class="tb primary" id="addGo">Add</button></div>
   <h4 class="ph" id="repoHead">Repositories</h4>
   <div id="repoList"></div>
@@ -622,7 +617,10 @@ function drawEdges() {
 const laneChip = ln => `<a class="pill link" data-lane="${esc(ln.name)}" style="background:${tint(ln.color, .16)};color:${ln.color};text-decoration:none">${ico('branch', 'xs')}${esc(ln.name)}</a>`;
 const fileList = (files, clash = []) => files.length ? `<ul class="files">${files.slice(0, 80).map(f => `<li class="${clash.includes(f) ? 'clash' : ''}">${esc(f)}</li>`).join('')}${files.length > 80 ? `<li>…and ${files.length - 80} more</li>` : ''}</ul>` : '';
 // A quiet row: label on the left, value on the right.
-const row = (k, v, t) => v ? `<div class="r"><span>${k}${t ? info(t) : ''}</span><div>${v}</div></div>` : '';
+const row = (k, v, t, wide) => v ? `<div class="r${wide ? ' w' : ''}"><span>${k}${t ? info(t) : ''}</span><div>${v}</div></div>` : '';
+// A commit link. On the map: jump to it. Not on the map: open it on GitHub.
+const cref = h => L.at[h] ? `<a class="link" data-goto="${esc(h)}"><code>${esc(L.at[h].c.short)}</code></a>` : `<a class="link" href="https://github.com/${esc(String(cur).replace(/^gh:/, ''))}/commit/${esc(h)}" target="_blank" rel="noopener" title="Not on the map. Open on GitHub"><code>${esc(h.slice(0, 7))}</code>${ico('external', 'xs')}</a>`;
+const chipOf = n => { const l = L.lanes.find(x => x.name === n); return l ? laneChip(l) : `<span class="pill" style="background:var(--fill);color:var(--ink-2)">${esc(n)}</span>`; };
 // A collapsible section. It is closed unless there is a reason to open it.
 const sec = (title, n, html, open) => html ? `<details class="sec"${open ? ' open' : ''}><summary>${title}${n != null ? `<em>${n}</em>` : ''}${ico('chevron-down', 'xs')}</summary>${html}</details>` : '';
 // A status line: icon, one bold word group, one short sentence.
@@ -658,7 +656,8 @@ function inspect(key) {
   const prPill = pr => { const c = PRS[prState(pr)] || PRS.OPEN; return `<span class="pill" style="background:${c[1]};color:${c[0]}">${c[2]}</span>`; };
   if (it.kind === 'card') {
     const c = it.c, merge = c.parents.length > 1, fork = ln.is_base && L.forkOf[c.hash], tg = (data.tags || {})[c.hash];
-    const parents = c.parents.map(p => L.at[p] ? `<a class="link" data-goto="${esc(p)}"><code>${esc(L.at[p].c.short)}</code></a>` : `<code>${esc(p.slice(0, 7))}</code>`).join(' + ');
+    const parents = c.parents.map(cref).join(' + ');
+    const forks = (fork || []).map(n => L.lanes.find(x => x.name === n)), exact = forks.filter(l => l && l.mb === c.hash).map(l => l.name), inside = forks.filter(l => l && l.mb !== c.hash).map(l => l.name);
     const mergedHere = c => { if (!ln.is_base || c.parents.length < 2) return '';
       const set = new Set(L.lanes.filter(l => mergeOf(l) && mergeOf(l).hash === c.hash).concat(c.parents.slice(1).map(p => L.at[p] && L.at[p].ln).filter(l => l && !l.is_base)));
       return [...set].map(laneChip).join(''); };
@@ -667,7 +666,7 @@ function inspect(key) {
       + (tg || []).map(t => `<span class="pill" style="background:var(--fill);color:var(--ink-2)">${ico('tag', 'xs')}${esc(t)}</span>`).join('');
     body = `<div class="meta"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b><span title="${esc(fmtDate(c.date))}">${ago(c.ct)}</span></div>
       <div class="chips">${chips}</div>
-      <div class="rows">${row('Date', esc(fmtDate(c.date)))}${row('Commit ID' , `<code class="idc" data-copy="${esc(c.hash)}" title="Click to copy the full ID">${esc(c.short)}</code>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', fork && fork.map(esc).join(', '), 'split')}${row('Merged in', mergedHere(c))}</div>
+      <div class="rows">${row('Date', esc(fmtDate(c.date)))}${row('Commit ID' , `<code class="idc" data-copy="${esc(c.hash)}" title="Click to copy the full ID">${esc(c.short)}</code>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', exact.map(chipOf).join(''), 'split', exact.length > 1)}${row('Branched from merged work', inside.map(chipOf).join(''), null, true)}${row('Merged in', mergedHere(c))}</div>
       ${it === ln.tip ? ciStatus(ln.ci) : ''}`;
   } else if (it.kind === 'pr') {
     const pr = it.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN, cf = ln.conflict;
@@ -683,12 +682,13 @@ function inspect(key) {
     const cf = ln.conflict, tot = ln.ahead + ln.behind;
     band = band_(ln.color, (ln.is_base ? 'Main branch' : 'Branch') + info(ln.is_base ? 'main' : 'branch'), ln.name);
     const mbc = ln.mbm && L.at[ln.mbm];
-    const fork = ln.is_base ? '' : mbc ? `<a class="link" data-goto="${esc(ln.mbm)}"><code>${sh(mbc.c.hash)}</code></a>` : (ln.mbm || ln.mb) ? `<code>${sh(ln.mbm || ln.mb)}</code>` : '';
+    const fork = ln.is_base ? '' : ln.mb ? cref(ln.mb) : mbc ? cref(ln.mbm) : '';
+    const shownAt = !ln.is_base && ln.mb && ln.mbm && ln.mb !== ln.mbm && mbc ? cref(ln.mbm) : '';
     const stale = !ln.is_base && ageDays(ln) > 30 ? st('warn', 'clock', 'Stale', `Last commit ${ago(ln.commits[0].ct)}.`, 'stale') : '';
     const counts = ln.is_base ? '' : `<div class="tiles"><div class="tile"><b style="color:${ln.color}">${ln.ahead}</b><span>${ico('arrow-up', 'xs')}Ahead${info('ahead')}</span></div><div class="tile"><b>${ln.behind}</b><span>${ico('arrow-down', 'xs')}Behind${info('behind')}</span></div></div>`;
     const files = cf && cf.changed.length ? sec('Changed files', cf.changed.length, (cf.files.length ? `<div class="cmdnote" style="margin:0 0 8px"><b style="color:var(--bad)">Red</b> files also changed on ${esc(base)}.</div>` : '') + fileList(cf.changed, cf.files), cf.state === 'conflict' || cf.state === 'possible') : '';
     body = `${counts}
-      <div class="rows">${ln.is_base ? '' : row('Forked from', fork)}${mbc && !ln.is_base ? row('Forked on', esc(fmtDate(mbc.c.date))) : ''}${ln.commits.length ? row('Updated', ago(ln.commits[0].ct)) : ''}${ln.pr ? row('Pull request', `<a class="link" data-key="pr:${esc(ln.name)}">#${ln.pr.number}</a> ${prPill(ln.pr)}`, 'pr') : ''}</div>
+      <div class="rows">${ln.is_base ? '' : row('Forked from', fork)}${row('Shown at', shownAt)}${mbc && !ln.is_base && (!ln.mb || ln.mb === ln.mbm) ? row('Forked on', esc(fmtDate(mbc.c.date))) : ''}${ln.commits.length ? row('Updated', ago(ln.commits[0].ct)) : ''}${ln.pr ? row('Pull request', `<a class="link" data-key="pr:${esc(ln.name)}">#${ln.pr.number}</a> ${prPill(ln.pr)}`, 'pr') : ''}</div>
       ${stale}${conflictStatus(ln)}${ciStatus(ln.ci)}${files}`;
   }
   s.innerHTML = band + `<div class="body">${body}</div>`; s.classList.add('open'); document.body.classList.add('side'); s.scrollTop = 0;
@@ -848,16 +848,14 @@ const updateStatus = () => {
 };
 const branchesText = x => (x.shown === x.tot ? x.tot : x.shown + ' of ' + x.tot) + (x.tot === 1 ? ' branch' : ' branches');
 function renderStats() {
-  const x = stats, st = (num, label, cls = '') => `<span class="st ${cls}"><b>${num}</b> ${label}</span>`;
+  const x = stats;
   $('newDot').style.display = x && x.f ? '' : 'none';
-  $('repoStats').innerHTML = !x ? '' : st(x.shown === x.tot ? x.tot : x.shown + ' of ' + x.tot, x.tot === 1 ? 'branch' : 'branches') + st(x.n, x.n === 1 ? 'commit' : 'commits')
-    + (x.f ? st(x.f, 'new', 'new') : '') + (x.conf ? st(x.conf, 'with conflicts', 'bad') : '') + (x.bad ? st(x.bad, 'with failed CI', 'bad') : '') + (x.skipped ? st(x.skipped, 'older not loaded', 'warn') : '')
-    + (x.left != null ? st(x.left, 'free GitHub requests remain', 'warn') : '');
 }
 // The bubble on the repo name (hover screens only, and only while the menu is closed)
 const showStatsTip = () => {
   const x = stats, b = $('repoBtn'), tip = $('tip'); if (!x || $('pop').classList.contains('open') || !matchMedia('(hover: hover)').matches) return;
-  hideTip(); tip.innerHTML = `<b>${esc((repos.find(r => r.id === cur) || {}).name || '')}</b><span>${branchesText(x)} · ${x.n} ${x.n === 1 ? 'commit' : 'commits'}</span>` + (x.f ? `<span style="color:#86efac">${x.f} new ${x.f === 1 ? 'commit' : 'commits'} since your last visit</span>` : '');
+  hideTip(); tip.innerHTML = `<b>${esc((repos.find(r => r.id === cur) || {}).name || '')}</b><span>${branchesText(x)} · ${x.n} ${x.n === 1 ? 'commit' : 'commits'}</span>` + (x.f ? `<span style="color:#86efac">${x.f} new ${x.f === 1 ? 'commit' : 'commits'} since your last visit</span>` : '')
+    + (x.conf ? `<span style="color:#fca5a5">${x.conf} with conflicts</span>` : '') + (x.bad ? `<span style="color:#fca5a5">${x.bad} with failed CI</span>` : '') + (x.skipped ? `<span style="color:#fcd34d">${x.skipped} older not loaded</span>` : '') + (x.left != null ? `<span style="color:#fcd34d">${x.left} free GitHub requests remain</span>` : '');
   tip.style.display = 'block'; const r = b.getBoundingClientRect(); tip.style.left = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, r.left)) + 'px'; tip.style.top = (r.bottom + 8) + 'px';
 };
 $('repoBtn').addEventListener('mouseenter', showStatsTip); $('repoBtn').addEventListener('mouseleave', hideTip); $('repoBtn').addEventListener('click', hideTip);
