@@ -48,8 +48,10 @@ const ui = {
 const unicode = process.platform === 'win32' ? !!(process.env.WT_SESSION || process.env.TERM_PROGRAM) : /utf-?8/i.test(process.env.LC_ALL || process.env.LC_CTYPE || process.env.LANG || '');
 const plain = t => unicode ? t : t.replace(/─/g, '-').replace(/[◆●]/g, '*').replace(/○/g, 'o').replace(/✓/g, '+').replace(/✗/g, 'x').replace(/›/g, '>').replace(/·/g, '.');
 const out = t => process.stdout.write(plain(t));
-// A clickable link where the terminal supports it. Other terminals still show the full address, and most of them open it with Cmd or Ctrl and a click.
-const linkable = tty && (/iTerm|vscode|WezTerm|ghostty|Hyper|kitty/i.test(process.env.TERM_PROGRAM || process.env.TERM || '') || !!process.env.WT_SESSION || Number(process.env.VTE_VERSION) >= 5000);
+// A clickable link. Nearly every modern terminal (iTerm2, Warp, VS Code, Ghostty, WezTerm, Kitty, Windows Terminal, GNOME Terminal) understands it
+// and ignores it quietly if not. Terminal.app does not, so it gets the plain address.
+const apple = process.env.TERM_PROGRAM === 'Apple_Terminal';  // Terminal.app has no link support in its escape codes; it opens a plain address on Cmd + double-click
+const linkable = tty && !apple && process.env.TERM !== 'linux';
 const link = url => linkable ? `\x1b]8;;${url}\x1b\\${ui.accent(url)}\x1b]8;;\x1b\\` : ui.accent(url);
 const PAD = '  ', RULE = ui.dim('─'.repeat(44));
 const row = (label, value, note) => PAD + ui.dim(label.padEnd(12)) + value + '\n' + (note ? PAD + ' '.repeat(12) + ui.dim(note) + '\n' : '');
@@ -62,7 +64,7 @@ function banner({ url, name, token, ghMissing, update, opening, portMoved, wante
   if (update) out += PAD + ui.green(`Update ${update} available. Run: ${updateCommand()}`) + '\n\n';
   out += heading('v' + VERSION);
   out += row('Status', ui.green('●') + ' Running', '');
-  out += row('Address', link(url), portMoved ? `Port ${wantedPort} is busy. Map Git uses this port.` : opening ? 'Opening in your browser' : 'Open this address in your browser');
+  out += row('Address', link(url), portMoved ? `Port ${wantedPort} is busy. Map Git uses this port.` : opening ? 'Opening in your browser' + (apple ? '. Or hold Cmd and double-click the link.' : '') : 'Open this address in your browser' + (apple ? ' (Cmd + double-click)' : ''));
   if (!name) out += row('', ui.dim('No repository yet. Paste a GitHub link in the browser.'));
   out += row('GitHub', token ? ui.green('●') + ' Logged in' : ui.yellow('○') + ' Not logged in', token ? '' : 'Public repos work. 60 requests each hour.');
   if (!token) {

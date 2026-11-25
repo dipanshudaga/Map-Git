@@ -194,6 +194,8 @@
   .seg { display:inline-flex; background:var(--fill); border-radius:var(--r2); padding:var(--s1); gap:var(--s1) }
   .seg button { height:var(--c-sm); padding:0 var(--s3); border-radius:var(--r1); font:var(--t-label); color:var(--ink-2) } .seg button.on { background:#fff; box-shadow:var(--e1); color:var(--ink) }
   .frow { display:flex; align-items:center; justify-content:space-between; gap:var(--s4); padding:var(--s3) 0; border-top:1px solid var(--line) } .frow:first-of-type { border:0; padding-top:0 }
+  #filt { width:408px } .seg button { white-space:nowrap } #filt .seg button { padding:0 var(--s2) } .frow label { white-space:nowrap }
+  .fsum { display:flex; align-items:center; justify-content:space-between; gap:var(--s3); margin-top:var(--s3); padding-top:var(--s3); border-top:1px solid var(--line) } .fsum .note { margin:0; flex:1 } .fsum .tb { height:var(--c-sm); color:var(--accent); flex:none }
   .frow label { font:var(--t-label) } .frow small { display:block; font:var(--t-caption); color:var(--muted) }
   .switch { width:40px; height:24px; border-radius:var(--r2); background:#d0d5dd; position:relative; flex:none } .switch::after { content:""; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .15s; box-shadow:var(--e1) }
   .switch.on { background:var(--accent) } .switch.on::after { transform:translateX(16px) }
@@ -206,15 +208,13 @@
   .hrow { display:grid; grid-template-columns:48px 1fr; gap:var(--s3); align-items:center; padding:var(--s1) 0 }
   .hrow p { margin:0; color:var(--muted) } .hrow p b { color:var(--ink); font-weight:600 }
   .hsw { display:grid; place-items:center; height:36px; border-radius:var(--r2); background:#f6f7f9; color:var(--ink) }
-  .hsw .m-head { display:block; width:32px; height:20px; border-radius:6px; background:#6d28d9 }
+  .hsw .m-head { display:block; width:32px; height:20px; border-radius:6px; background:#15803d }
   .hsw .m-card { display:block; width:34px; height:24px; border-radius:6px; border:2px solid #15803d; background:#dcebe3 }
   .hsw .m-pr { display:block; width:34px; height:24px; border-radius:6px; border:2px solid #6d28d9; background:#fff }
   .hsw .m-line { display:block; width:32px; border-top:3px solid #15803d } .hsw .m-line.d { border-top-style:dashed }
   #help .keys { display:flex; flex-wrap:wrap; gap:var(--s2) var(--s4); margin:var(--s2) 0 0 60px; color:var(--muted); font:var(--t-caption) }
   #help kbd { display:inline-block; min-width:22px; padding:1px 6px; margin-right:6px; text-align:center; font:var(--t-caption-strong); color:var(--ink); background:#fff; border:1px solid var(--line); border-bottom-width:2px; border-radius:6px }
   #help .keys kbd + kbd { margin-left:-2px }
-  #help .htip { display:flex; align-items:flex-start; gap:var(--s3); margin:var(--s4) 0 0; padding:var(--s3) var(--s4); background:var(--accent-bg); border-radius:var(--r2); color:var(--ink-2) }
-  #help .htip .i { flex:none; margin-top:2px; color:var(--accent) }
   #empty { position:fixed; inset:0; display:none; place-items:center; color:var(--muted); pointer-events:none; text-align:center; font:var(--t-title); padding:0 20%; z-index:1 }
   #empty small { font:var(--t-body) }
   body.empty #zoom { display:none }
@@ -258,12 +258,13 @@
 </div>
 
 <div id="filt" class="float pop caret">
-  <h3>Which branches to show</h3>
-  <div class="frow"><label>Load up to<small>Newest first</small></label><div class="seg" id="fMax"></div></div>
-  <div class="frow"><label>Hide stale<small>No commits for</small></label><div class="seg" id="fStale"></div></div>
-  <div class="frow"><label>Hide fully merged<small>Already in the main branch</small></label><button class="switch" id="fMerged" aria-label="Hide fully merged"></button></div>
-  <div class="frow"><label>Only with conflicts<small>Clash with the main branch</small></label><button class="switch" id="fConf" aria-label="Only conflicting"></button></div>
-  <p id="fSummary" class="note"></p>
+  <h3>Choose what to show</h3>
+  <div class="frow"><label>Branches<small>Show the newest</small></label><div class="seg" id="fMax"></div></div>
+  <div class="frow"><label>Hide old branches<small>No change for</small></label><div class="seg" id="fStale"></div></div>
+  <div class="frow"><label>Hide merged branches<small>Their work is already in main</small></label><button class="switch" id="fMerged" aria-label="Hide merged branches"></button></div>
+  <div class="frow"><label>Only open pull requests<small>Branches that wait for review</small></label><button class="switch" id="fPr" aria-label="Only open pull requests"></button></div>
+  <div class="frow"><label>Only branches that clash<small>They conflict with main</small></label><button class="switch" id="fConf" aria-label="Only branches that conflict"></button></div>
+  <div class="fsum"><p id="fSummary" class="note"></p><button class="tb" id="fReset">Reset</button></div>
 </div>
 
 <div id="help" class="float">
@@ -273,7 +274,6 @@
   <div class="hrow"><span class="hsw"><i class="m-pr"></i></span><p><b>Pull request.</b> A request to merge.</p></div>
   <div class="hrow"><span class="hsw"><i class="m-line d"></i></span><p><b>Split.</b> Where a branch began.</p></div>
   <div class="hrow"><span class="hsw"><i class="m-line"></i></span><p><b>Merge.</b> A branch joined main.</p></div>
-  <p class="htip"><svg class="i" aria-hidden="true"><use href="#i-info"/></svg>Point at this icon to see what a word means.</p>
 </div>
 
 <aside id="side" class="float"></aside>
@@ -337,15 +337,16 @@ const ageDays = ln => ln.commits.length ? (nowS() - ln.commits[0].ct) / DAY : 0;
 // ---------- state ----------
 let view = { x: 120, y: 100, k: 1 }, data = null, repos = [], cur = store.get('gc-repo', null), L = null, selKey = null;
 let laneOrder = [];  // user's column order (names), set by dragging a branch title
-let openedRepo = null, expanded = new Set(), tailBy = {}, offs = {}, flt = { max: 100, stale: 0, merged: false, conf: false, ...store.get('gc-filters', {}) };
+let openedRepo = null, expanded = new Set(), tailBy = {}, offs = {}, flt = { max: 100, stale: 0, merged: false, conf: false, pr: false, ...store.get('gc-filters', {}) };
 try { Object.keys(localStorage).filter(k => k.startsWith('gc-exp-')).forEach(k => localStorage.removeItem(k)); } catch { /* ignore */ }
 const expKey = () => 'gc-exp-' + cur, offKey = () => 'gc-off2-' + cur, ordKey = () => 'gc-order-' + cur;
 
 // ---------- layout (pure function of data + filters + expanded) ----------
 function layout() {
   let lanes = data.lanes.map((ln, i) => ({ ...ln, i }));
-  lanes = lanes.filter(ln => ln.is_base || (
-    (!flt.stale || ageDays(ln) < flt.stale) && (!flt.merged || ln.ahead > 0) && (!flt.conf || (ln.conflict && (ln.conflict.state === 'conflict' || ln.conflict.state === 'possible')))));
+  let kept = 0;  // "Branches" shows the newest N of what is loaded, so changing it is instant
+  lanes = lanes.filter(ln => ln.is_base || ln.virtual || (
+    (!flt.stale || ageDays(ln) < flt.stale) && (!flt.merged || ln.ahead > 0) && (!flt.pr || (ln.pr && ln.pr.state === 'OPEN')) && (!flt.conf || (ln.conflict && (ln.conflict.state === 'conflict' || ln.conflict.state === 'possible'))) && ++kept <= flt.max));
   const rank = l => { const k = laneOrder.indexOf(l.name); return k >= 0 ? k : 1e6 + l.i; };
   lanes = [lanes[0], ...lanes.slice(1).sort((a, b) => rank(a) - rank(b))];  // main line stays first; the rest follow the order you dragged them into
   lanes.forEach((ln, i) => { ln.mbm = ln.mb_main || ln.mb; ln.col = i; ln.color = ln.is_base ? BASE_COLOR : COLORS[(ln.i - 1) % COLORS.length]; ln.x = i * COLX; ln.stale = !ln.is_base && flt.staleMark && ageDays(ln) > 90; });
@@ -768,15 +769,19 @@ const seg = (id, opts, key, onchange) => {
   const box = $(id); box.innerHTML = opts.map(([v, t]) => `<button data-v="${v}" class="${flt[key] === v ? 'on' : ''}">${t}</button>`).join('');
   box.onclick = e => { const b = e.target.closest('button'); if (!b) return; flt[key] = +b.dataset.v; store.set('gc-filters', flt); seg(id, opts, key, onchange); onchange(); };
 };
+const FILT_DEFAULT = { max: 100, stale: 0, merged: false, conf: false, pr: false };
 const syncFilters = () => {
-  $('fMerged').classList.toggle('on', flt.merged); $('fConf').classList.toggle('on', flt.conf);
-  const n = (flt.stale ? 1 : 0) + (flt.merged ? 1 : 0) + (flt.conf ? 1 : 0) + (flt.max !== 100 ? 1 : 0);
-  $('filtN').style.display = n ? '' : 'none'; $('filtN').textContent = n;
-  if (data) { const real = a => a.filter(l => !l.is_base && !l.virtual).length, total = real(data.lanes), shown = L ? real(L.lanes) : total; $('fSummary').textContent = `${shown} of ${total} loaded branches are visible.` + (data.skipped ? ` ${data.skipped} older branches are not loaded. Increase "Load up to" to load them.` : '') + (!authed() && flt.max > 12 ? ' Without a GitHub login, Map Git loads 12 branches at most. To load more, run "gh auth login" in your terminal.' : ''); }
+  $('fMerged').classList.toggle('on', flt.merged); $('fConf').classList.toggle('on', flt.conf); $('fPr').classList.toggle('on', flt.pr);
+  const n = (flt.stale ? 1 : 0) + (flt.merged ? 1 : 0) + (flt.conf ? 1 : 0) + (flt.pr ? 1 : 0) + (flt.max !== 100 ? 1 : 0);
+  $('filtN').style.display = n ? '' : 'none'; $('filtN').textContent = n; $('fReset').style.visibility = n ? '' : 'hidden';
+  if (data) { const real = a => a.filter(l => !l.is_base && !l.virtual).length, total = real(data.lanes), shown = L ? real(L.lanes) : total;
+    $('fSummary').textContent = `Showing ${shown} of ${total} branches.` + (data.skipped ? ` ${data.skipped} more are on GitHub but not loaded.` : '') + (!authed() ? ' Without a GitHub login, Map Git loads 12 branches. Run "gh auth login" to load more.' : ''); }
 };
 const applyFilters = () => { store.set('gc-filters', flt); if (data) { draw(); syncFilters(); updateStatus(); } };
-seg('fMax', [[10, '10'], [25, '25'], [50, '50'], [100, '100']], 'max', () => { syncFilters(); openRepo(false); });
-seg('fStale', [[0, 'Off'], [30, '30d'], [90, '90d'], [365, '1y']], 'stale', applyFilters);
+const buildSegs = () => { seg('fMax', [[10, '10'], [25, '25'], [50, '50'], [100, 'All']], 'max', applyFilters); seg('fStale', [[0, 'Never'], [30, '1 mo'], [90, '3 mo'], [365, '1 yr']], 'stale', applyFilters); };
+buildSegs();
+$('fPr').onclick = () => { flt.pr = !flt.pr; applyFilters(); };
+$('fReset').onclick = () => { Object.assign(flt, FILT_DEFAULT); buildSegs(); applyFilters(); };
 $('fMerged').onclick = () => { flt.merged = !flt.merged; applyFilters(); };
 $('fConf').onclick = () => { flt.conf = !flt.conf; applyFilters(); };
 const closePops = () => { document.querySelectorAll('.pop').forEach(p => p.classList.remove('open')); document.querySelectorAll('[data-pop]').forEach(b => b.classList.remove('on')); };
@@ -789,7 +794,7 @@ function togglePop(pop, btn, up) {
   const was = pop.classList.contains('open'); closePops(); $('help').classList.remove('open'); if (was) return false;
   pop.classList.add('open'); btn.classList.add('on'); anchorPop(pop, btn, up); return true;
 }
-$('filtBtn').onclick = () => { const up = $('filtBtn').getBoundingClientRect().top > innerHeight / 2; if (togglePop($('filt'), $('filtBtn'), up)) { syncFilters(); anchorPop($('filt'), $('filtBtn'), up); } };
+$('filtBtn').onclick = () => { const up = $('filtBtn').getBoundingClientRect().top > innerHeight / 2; if (togglePop($('filt'), $('filtBtn'), up)) { deselect(); hideTip(); syncFilters(); anchorPop($('filt'), $('filtBtn'), up); } };
 $('repoBtn').onclick = () => { if (togglePop($('pop'), $('repoBtn'), false)) { renderRepoList(); $('src').focus(); } };
 window.addEventListener('resize', closePops);
 
@@ -885,7 +890,7 @@ const showStatsTip = () => {
 $('repoBtn').addEventListener('mouseenter', showStatsTip); $('repoBtn').addEventListener('mouseleave', hideTip); $('repoBtn').addEventListener('click', hideTip);
 
 const histBy = {};  // per repo: how many extra 100-commit pages of main history you asked for
-const effMax = () => authed() ? flt.max : Math.min(flt.max, 12);  // without a sign-in, stay well inside GitHub's free 60 requests/hour
+const effMax = () => authed() ? 100 : 12;  // without a sign-in, stay well inside GitHub's free 60 requests/hour
 const showStart = () => {  // no repository yet: the canvas itself is the home page, with the repository menu open
   clearBoard(); data = null; L = null; document.body.classList.add('empty'); $('emptyMsg').textContent = 'Paste a link to a GitHub repository'; $('empty').style.display = 'grid';
   setTimeout(() => { if (!$('pop').classList.contains('open')) togglePop($('pop'), $('repoBtn'), false); renderRepoList(); $('src').focus(); }, 60);
