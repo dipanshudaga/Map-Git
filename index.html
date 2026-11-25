@@ -675,7 +675,7 @@ function inspect(key) {
     const cf = ln.conflict, tot = ln.ahead + ln.behind;
     band = band_(ln.color, (ln.is_base ? 'Main branch' : 'Branch') + info(ln.is_base ? 'main' : 'branch'), ln.name);
     const mbc = ln.mbm && L.at[ln.mbm];
-    const fork = ln.is_base ? '' : mbc ? `<div class="two"><a class="link" data-goto="${esc(ln.mbm)}"><code>${sh(mbc.c.hash)}</code></a><small>${esc(mbc.c.msg)} · ${esc(fmtDate(mbc.c.date))}</small></div>` : (ln.mbm || ln.mb) ? `<code>${sh(ln.mbm || ln.mb)}</code>` : '';
+    const fork = ln.is_base ? '' : mbc ? `<a class="link" data-goto="${esc(ln.mbm)}"><code>${sh(mbc.c.hash)}</code></a>` : (ln.mbm || ln.mb) ? `<code>${sh(ln.mbm || ln.mb)}</code>` : '';
     const stale = !ln.is_base && ageDays(ln) > 30 ? st('warn', 'clock', 'Stale', `Last commit ${ago(ln.commits[0].ct)}.`, 'stale') : '';
     const counts = ln.is_base ? '' : `<div class="tiles"><div class="tile"><b style="color:${ln.color}">${ln.ahead}</b><span>${ico('arrow-up', 'xs')}Ahead${info('ahead')}</span></div><div class="tile"><b>${ln.behind}</b><span>${ico('arrow-down', 'xs')}Behind${info('behind')}</span></div></div>`;
     const files = cf && cf.changed.length ? sec('Changed files', cf.changed.length, (cf.files.length ? `<div class="cmdnote" style="margin:0 0 8px"><b style="color:var(--bad)">Red</b> files also changed on ${esc(base)}.</div>` : '') + fileList(cf.changed, cf.files), cf.state === 'conflict' || cf.state === 'possible') : '';
@@ -684,7 +684,7 @@ function inspect(key) {
       (ln.behind ? cmd(`git checkout ${ln.name} && git merge ${base}`, 'Bring ' + esc(base) + ' into this branch.') : '') +
       cmd(`git log ${base}..${ln.name} --oneline`, 'List the commits only this branch has.'));
     body = `${counts}
-      <div class="rows">${ln.is_base ? '' : row('Forked from', fork)}${ln.commits.length ? row('Updated', ago(ln.commits[0].ct)) : ''}${ln.pr ? row('Pull request', `<a class="link" data-key="pr:${esc(ln.name)}">#${ln.pr.number}</a> ${prPill(ln.pr)}`, 'pr') : ''}</div>
+      <div class="rows">${ln.is_base ? '' : row('Forked from', fork)}${mbc && !ln.is_base ? row('Forked on', esc(fmtDate(mbc.c.date))) : ''}${ln.commits.length ? row('Updated', ago(ln.commits[0].ct)) : ''}${ln.pr ? row('Pull request', `<a class="link" data-key="pr:${esc(ln.name)}">#${ln.pr.number}</a> ${prPill(ln.pr)}`, 'pr') : ''}</div>
       ${stale}${conflictStatus(ln)}${ciStatus(ln.ci)}${files}${cmds}`;
   }
   s.innerHTML = band + `<div class="body">${body}</div>`; s.classList.add('open'); document.body.classList.add('side'); s.scrollTop = 0;
