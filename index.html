@@ -76,7 +76,6 @@
   @media (prefers-reduced-motion:reduce) { #loadbar::after, #loading i { animation-duration:3s } }
   @media (max-width:1180px) { #status .st:nth-child(n+3):not(.new) { display:none } }
   @media (max-width:980px) { #status { display:none } }
-  @media (max-width:760px) { body #zoom { top:calc(var(--edge) + var(--bar) + var(--s2)) } #zoom .tb:not(.icon) { font-size:0; gap:0; padding:0 var(--s3) } #zoom .tb:not(.icon) .badge { font-size:12px; margin-left:4px } }
   #zoom { right:var(--edge); top:var(--edge); height:var(--bar); display:flex; align-items:center; gap:var(--s1); padding:0 var(--s2) }
   #zl { min-width:56px; text-align:center; color:var(--muted); font:var(--t-label); font-variant-numeric:tabular-nums }
 
@@ -197,6 +196,16 @@
   body.empty #zoom { display:none }
   .note:empty { display:none }
   #toast { position:fixed; left:50%; bottom:var(--edge); transform:translateX(-50%); background:#14141c; color:#fff; height:var(--c); padding:0 var(--s4); border-radius:var(--pill); font:var(--t-label); z-index:20; display:none; align-items:center }
+  /* phone: the brand card stays at the top, the tools bar goes to the bottom under the thumb, both centred */
+  @media (max-width:760px) {
+    body #tl { left:50%; transform:translateX(-50%); max-width:calc(100vw - 2 * var(--edge)) }
+    body #zoom { top:auto; right:auto; left:50%; bottom:var(--edge); transform:translateX(-50%) }
+    body #zoom .tb:not(.icon) { font-size:0; gap:0; padding:0 var(--s3) } body #zoom .tb:not(.icon) .badge { font-size:12px; margin-left:4px }
+    body #side { top:calc(var(--edge) + var(--bar) + var(--s2)); bottom:calc(var(--edge) + var(--bar) + var(--s2)); left:var(--edge); right:var(--edge); width:auto }
+    body #help { top:auto; bottom:calc(var(--edge) + var(--bar) + var(--s2)); left:50%; right:auto; transform:translateX(-50%); max-height:calc(100vh - 2 * (var(--edge) + var(--bar) + var(--s2))) }
+    body #toast { bottom:calc(var(--edge) + var(--bar) + var(--s2)) }
+    body .pop { width:min(360px, calc(100vw - 2 * var(--edge))) }
+  }
 </style>
 </head>
 <body>
@@ -715,7 +724,7 @@ function togglePop(pop, btn, up) {
   const was = pop.classList.contains('open'); closePops(); $('help').classList.remove('open'); if (was) return false;
   pop.classList.add('open'); btn.classList.add('on'); anchorPop(pop, btn, up); return true;
 }
-$('filtBtn').onclick = () => { if (togglePop($('filt'), $('filtBtn'), false)) { syncFilters(); anchorPop($('filt'), $('filtBtn'), false); } };
+$('filtBtn').onclick = () => { const up = $('filtBtn').getBoundingClientRect().top > innerHeight / 2; if (togglePop($('filt'), $('filtBtn'), up)) { syncFilters(); anchorPop($('filt'), $('filtBtn'), up); } };
 $('repoBtn').onclick = () => { if (togglePop($('pop'), $('repoBtn'), false)) { renderRepoList(); $('src').focus(); } };
 window.addEventListener('resize', closePops);
 
