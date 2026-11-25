@@ -337,7 +337,7 @@ const ageDays = ln => ln.commits.length ? (nowS() - ln.commits[0].ct) / DAY : 0;
 // ---------- state ----------
 let view = { x: 120, y: 100, k: 1 }, data = null, repos = [], cur = store.get('gc-repo', null), L = null, selKey = null;
 let laneOrder = [];  // user's column order (names), set by dragging a branch title
-let openedRepo = null, expanded = new Set(), offs = {}, flt = { max: 100, stale: 0, merged: false, conf: false, ...store.get('gc-filters', {}) };
+let openedRepo = null, expanded = new Set(), tailBy = {}, offs = {}, flt = { max: 100, stale: 0, merged: false, conf: false, ...store.get('gc-filters', {}) };
 try { Object.keys(localStorage).filter(k => k.startsWith('gc-exp-')).forEach(k => localStorage.removeItem(k)); } catch { /* ignore */ }
 const expKey = () => 'gc-exp-' + cur, offKey = () => 'gc-off2-' + cur, ordKey = () => 'gc-order-' + cur;
 
@@ -368,8 +368,9 @@ function layout() {
       }
       idx = [...keep].sort((a, b) => a - b);
       const lastIdx = idx.length ? idx[idx.length - 1] : -1, tailN = all.length - (lastIdx + 1);  // commits older than the deepest fork point
-      ln.tailOpen = !ln.open && tailN > 0 && expanded.has('tail:' + ln.name); ln.tailCount = tailN;
-      if (ln.tailOpen) { for (let i = lastIdx + 1; i < all.length; i++) keep.add(i); idx = [...keep].sort((a, b) => a - b); }
+      // Older commits open step by step: 100 first, then 50 more each time. tailBy[name] counts how many are open.
+      const tshow = ln.open ? 0 : Math.min(tailN, tailBy[ln.name] || 0); ln.tailOpen = tshow > 0; ln.tailShown = tshow; ln.tailCount = tailN;
+      if (tshow) { for (let i = lastIdx + 1; i <= lastIdx + tshow; i++) keep.add(i); idx = [...keep].sort((a, b) => a - b); }
       if (ln.open) { ln.shown = all; }
       else {
         ln.shown = idx.map(i => all[i]);
@@ -440,10 +441,11 @@ function layout() {
       if (ln.pr) { y -= PRH + GAP; ln.prItem = add('pr:' + ln.name, 'pr', ln, ln.x, y, CW, PRH, { pr: ln.pr }); } headY = y - GAP - HEAD_H; }
     ln.headItem = add('head:' + ln.name, 'head', ln, ln.x, headY, CW, HEAD_H);
     const lowest = ln.cards.length ? Math.max(...ln.cards.map(k => k.y)) : y0;
-    ln.moreItem = null; ln.histItem = null;
-    if (ln.hiddenLocal > 0 || ln.tailOpen || (ln.open && ln.commits.length > START) || (ln.more || 0) !== 0)
+    ln.moreItem = null; ln.lessItem = null;
+    if (ln.hiddenLocal > 0 || (ln.is_base && ln.more < 0) || (ln.open && ln.commits.length > START) || (!ln.is_base && (ln.more || 0) !== 0))
       ln.moreItem = add('more:' + ln.name, 'more', ln, ln.x, lowest + CH + GAP, CW, 40);
-    ln.histItem = ln.is_base && ln.more < 0 && (ln.tailOpen || ln.open) ? add('hist:' + ln.name, 'more', ln, ln.x, lowest + CH + GAP + (ln.moreItem ? 40 + GAP : 0), CW, 40) : null;
+    let below = lowest + CH + GAP + (ln.moreItem ? 40 + GAP : 0);  // the pills under the main branch stack: show more, then hide
+    ln.lessItem = ln.is_base && ln.tailOpen ? add('less:' + ln.name, 'more', ln, ln.x, below, CW, 40) : null; 
   }
   return { lanes, items, forkOf, at: Object.fromEntries(Object.values(items).filter(i => i.kind === 'card').map(i => [i.c.hash, i])), row };
 }
@@ -530,13 +532,12 @@ function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
   }
   for (const ln of L.lanes) if (ln.moreItem) {
     const it = ln.moreItem, hid = ln.hiddenLocal;
-    if (ln.tailOpen) { const d = mk(it, 'more', `${ico('chevron-up')}Hide ${ln.tailCount} older commit${ln.tailCount > 1 ? 's' : ''}`); d.style.borderColor = d.style.color = ln.color; d.onclick = () => toggleTail(ln.name); }
-    else if (hid > 0) { const d = mk(it, 'more', `${ico('chevron-down')}Show ${hid} older commit${hid > 1 ? 's' : ''}`); d.style.borderColor = d.style.color = ln.color; d.onclick = () => ln.is_base ? toggleTail(ln.name) : toggleLane(ln.name); }
+    if (hid > 0) { const step = ln.is_base ? Math.min(hid, ln.tailShown ? 50 : 100) : hid, d = mk(it, 'more', `${ico('chevron-down')}Show ${step} ${ln.is_base && ln.tailShown ? 'more' : 'older'} commit${step > 1 ? 's' : ''}`); d.style.borderColor = d.style.color = ln.color; d.onclick = () => ln.is_base ? showTail(ln.name, step) : toggleLane(ln.name); }
+    else if (ln.is_base && ln.more < 0 && !ln.open) { const d = mk(it, 'more', `${ico('chevron-down')}Show 50 more commits`); d.style.borderColor = d.style.color = ln.color; d.title = 'Read more history of ' + ln.name + ' from GitHub'; d.onclick = () => { tailBy[ln.name] = (tailBy[ln.name] || 0) + 50; histBy[cur] = (histBy[cur] || 0) + 5; openRepo(false); }; }  // everything loaded is open: read more from GitHub, then keep going
     else if (ln.open && ln.commits.length > START) { const d = mk(it, 'more', ico('chevron-up') + 'Collapse'); d.style.borderColor = d.style.color = ln.color; d.onclick = () => toggleLane(ln.name); }
-    else if (ln.is_base && ln.more < 0) { const d = mk(it, 'more', `${ico('chevron-down')}Load older history`); d.style.borderColor = d.style.color = ln.color; d.title = 'Read 1,000 more commits of ' + ln.name + ' from GitHub'; d.onclick = () => { histBy[cur] = (histBy[cur] || 0) + 10; openRepo(false); }; }
     else mk(it, 'more note', `${ln.more > 0 ? '+' + ln.more + ' even older not loaded' : 'Older history not loaded'}${data.github ? ' (GitHub API limit)' : ''}`);
   }
-  for (const ln of L.lanes) if (ln.histItem) { const d = mk(ln.histItem, 'more', `${ico('chevron-down')}Load older history`); d.style.borderColor = d.style.color = ln.color; d.title = 'Read 1,000 more commits of ' + ln.name + ' from GitHub'; d.onclick = () => { histBy[cur] = (histBy[cur] || 0) + 10; expanded.delete('tail:' + ln.name); draw(false); openRepo(false); }; }  // fold the long tail first, so the page stays light while it loads
+  for (const ln of L.lanes) if (ln.lessItem) { const d = mk(ln.lessItem, 'more', `${ico('chevron-up')}Hide ${ln.tailShown} older commit${ln.tailShown > 1 ? 's' : ''}`); d.style.borderColor = d.style.color = ln.color; d.onclick = () => hideTail(ln.name); }
   for (const k of Object.keys(els)) if (!seenKeys.has(k)) { const d = els[k]; delete els[k]; d.style.opacity = 0; d.style.pointerEvents = 'none'; setTimeout(() => d.remove(), 260); }
   world.appendChild(frag);
   if (selKey && els[selKey]) els[selKey].classList.add('sel');
@@ -755,7 +756,8 @@ function focusKey(key, select) {
 const toggleGap = g => { const opening = !expanded.has(g.key); opening ? expanded.add(g.key) : expanded.delete(g.key); draw(true, g.after.hash, null, !opening); };
 // When a branch opens downward, keep its lowest visible card where it is on screen: the new commits appear below it and the view does not move.
 const lowestCard = name => { const l = L.lanes.find(x => x.name === name), cs = l ? l.cards : []; return cs.length ? cs.reduce((m, k) => k.y > m.y ? k : m).key : 'more:' + name; };
-const toggleTail = name => { const k = 'tail:' + name; const opening = !expanded.has(k), anchor = opening ? lowestCard(name) : 'more:' + name; opening ? expanded.add(k) : expanded.delete(k); draw(true, anchor, null, !opening); };
+const showTail = (name, step) => { const anchor = lowestCard(name); tailBy[name] = (tailBy[name] || 0) + step; draw(true, anchor, null, false); };
+const hideTail = name => { delete tailBy[name]; draw(true, 'more:' + name, null, true); };
 const toggleLane = name => { const opening = !expanded.has(name), anchor = opening ? lowestCard(name) : 'more:' + name; opening ? expanded.add(name) : expanded.delete(name); draw(true, anchor, null, !opening); };
 $('expAll').onclick = () => {
   const all = L.lanes.every(l => expanded.has(l.name) || l.commits.length <= START);
@@ -892,16 +894,17 @@ const showEmpty = msg => { clearBoard(); data = null; L = null; $('emptyMsg').in
 const openRepo = async reload => {
   if (!cur) return showStart();
   busy(true, (reload ? 'Reading ' : 'Loading ') + (((repos.find(r => r.id === cur) || {}).name) || 'the repository') + '…');
+  if (world.childElementCount > 300) world.style.visibility = 'hidden';  // a very long map would slow the page down while it loads
   try {
     const d = await api(`api/graph?repo=${encodeURIComponent(cur)}&max=${effMax()}&hist=${histBy[cur] || 0}`, { method: reload ? 'POST' : 'GET' });
     data = d; data.github = (repos.find(r => r.id === cur) || {}).kind === 'github';
-    if (openedRepo !== cur) expanded = new Set(); openedRepo = cur;  // a repository always opens collapsed; Reload keeps what you opened
+    if (openedRepo !== cur) { expanded = new Set(); tailBy = {}; } openedRepo = cur;  // a repository always opens collapsed; Reload keeps what you opened
     offs = store.get(offKey(), {}); laneOrder = store.get(ordKey(), []); deselect(); closePops();
     clearBoard(); draw(false); syncFilters(); updateStatus(); fit();
     $('empty').style.display = 'none'; document.body.classList.remove('empty'); setExp(L.lanes.every(l => expanded.has(l.name) || l.commits.length <= START));
     { const nm = (repos.find(r => r.id === cur) || {}).name; if (nm) try { history.replaceState(null, '', '?repo=' + nm); } catch {} }  // the address bar names the repo
   } catch (e) { stats = null; renderStats(); showEmpty(esc(e.message)); }
-  busy(false);
+  world.style.visibility = ''; busy(false);
 };
 
 // ----- repository menu -----
@@ -1024,7 +1027,7 @@ async function buildGraph(x, max, hx = 0) {
     lanes.push({ name, is_base: false, tip: tipOf[name] || null, mb: (c.merge_base_commit || {}).sha || null, ahead: c.ahead_by, behind: c.behind_by, more: Math.max(0, c.ahead_by - (c.commits || []).length), upstream: 'GitHub', track: '', conflict: null, ci: ciBy[name] || null, pr: prs[name] || null, commits: cs, _files: (c.files || []).map(f => f.filename) });
   });
   // Main history: the newest 100 commits first. Signed in, read up to 2,000 (one request per 100). Not signed in, go further back (up to 300)
-  // only when a branch needs it, to protect GitHub's free 60 requests an hour. "Load older history" adds 1,000 more each time.
+  // only when a branch needs it, to protect GitHub's free 60 requests an hour. "Show 50 more commits" asks for 500 more once everything loaded is open.
   const unplaced = () => lanes.some(l => !l.is_base && l.mb && !attachNodes(l.mb, bchain, baseNodes)), maxPages = (hasTok ? 20 : 3) + hx;
   for (let page = 2; page <= maxPages && fullPage && (hasTok || hx || unplaced()); page++) {
     const more = await ghReq(`${R}/commits?sha=${encodeURIComponent(base)}&per_page=100&page=${page}`).catch(e => { noRate(e); return []; });

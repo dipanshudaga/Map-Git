@@ -48,19 +48,22 @@ const ui = {
 const unicode = process.platform === 'win32' ? !!(process.env.WT_SESSION || process.env.TERM_PROGRAM) : /utf-?8/i.test(process.env.LC_ALL || process.env.LC_CTYPE || process.env.LANG || '');
 const plain = t => unicode ? t : t.replace(/─/g, '-').replace(/[◆●]/g, '*').replace(/○/g, 'o').replace(/✓/g, '+').replace(/✗/g, 'x').replace(/›/g, '>').replace(/·/g, '.');
 const out = t => process.stdout.write(plain(t));
+// A clickable link where the terminal supports it. Other terminals still show the full address, and most of them open it with Cmd or Ctrl and a click.
+const linkable = tty && (/iTerm|vscode|WezTerm|ghostty|Hyper|kitty/i.test(process.env.TERM_PROGRAM || process.env.TERM || '') || !!process.env.WT_SESSION || Number(process.env.VTE_VERSION) >= 5000);
+const link = url => linkable ? `\x1b]8;;${url}\x1b\\${ui.accent(url)}\x1b]8;;\x1b\\` : ui.accent(url);
 const PAD = '  ', RULE = ui.dim('─'.repeat(44));
 const row = (label, value, note) => PAD + ui.dim(label.padEnd(12)) + value + '\n' + (note ? PAD + ' '.repeat(12) + ui.dim(note) + '\n' : '');
 const heading = text => `${PAD}${ui.accent('◆')} ${ui.bold('Map Git')}${text ? ui.dim('  ' + text) : ''}\n${PAD}${RULE}\n`;
 
 // A new user needs to know three things: Map Git runs, where to go, and what to do next. A returning user needs only the first two.
 // So the notes appear only when they help: no repository, no login, a busy port, or a tip for npx users.
-function banner({ address, name, fromFolder, token, ghMissing, update, opening, portMoved, wantedPort, tip }) {
+function banner({ url, name, token, ghMissing, update, opening, portMoved, wantedPort, tip }) {
   let out = '\n';
   if (update) out += PAD + ui.green(`Update ${update} available. Run: ${updateCommand()}`) + '\n\n';
   out += heading('v' + VERSION);
   out += row('Status', ui.green('●') + ' Running', '');
-  out += row('Address', address, portMoved ? `Port ${wantedPort} is busy. Map Git uses this port.` : opening ? 'Opening in your browser' : 'Open this address in your browser');
-  out += row('Repository', name ? ui.bold(name) + (fromFolder ? ui.dim('  (this folder)') : '') : ui.dim('none yet'), name ? '' : 'Paste a GitHub link in the browser');
+  out += row('Address', link(url), portMoved ? `Port ${wantedPort} is busy. Map Git uses this port.` : opening ? 'Opening in your browser' : 'Open this address in your browser');
+  if (!name) out += row('', ui.dim('No repository yet. Paste a GitHub link in the browser.'));
   out += row('GitHub', token ? ui.green('●') + ' Logged in' : ui.yellow('○') + ' Not logged in', token ? '' : 'Public repos work. 60 requests each hour.');
   if (!token) {
     out += PAD + RULE + '\n';
@@ -234,7 +237,7 @@ async function main() {
     catch (e) { if (e.code === 'EADDRINUSE' && i < 9) { port++; continue; } console.error(`Map Git cannot start the server: ${e.message}`); process.exit(1); }
   }
   const address = `http://127.0.0.1:${port}`, url = address + '/' + (name ? `?repo=${name}` : '');
-  out(banner({ address, name, fromFolder, token, ghMissing, update: updateNotice(), opening: o.open, portMoved: port !== o.port, wantedPort: o.port, tip: npxTip() }));
+  out(banner({ url, name, token, ghMissing, update: updateNotice(), opening: o.open, portMoved: port !== o.port, wantedPort: o.port, tip: npxTip() }));
   if (o.open) openBrowser(url);
   const stop = () => { server.close(); process.exit(0); };
   process.on('SIGINT', stop); process.on('SIGTERM', stop);
