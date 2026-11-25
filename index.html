@@ -134,7 +134,11 @@
   #side .rows { margin-top:var(--s4) } #side .r { display:flex; justify-content:space-between; align-items:center; gap:var(--s4); min-height:32px; padding:var(--s1) 0; border-top:1px solid var(--line) } #side .r:first-child { border-top:0 }
   #side .r > span { color:var(--muted); flex:none } #side .r > div { display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap; justify-content:flex-end; text-align:right; word-break:break-word } #side .m { color:var(--muted); font-weight:400 }
   #side .mini { width:24px; height:24px; border-radius:var(--r1); display:grid; place-items:center; color:var(--faint) } #side .mini:hover { background:var(--fill); color:var(--ink) }
-  #side .counts { display:flex; gap:var(--s5); margin-top:var(--s4); font:var(--t-body); color:var(--muted) } #side .counts span { display:inline-flex; align-items:center; gap:var(--s1) } #side .counts b { font:var(--t-heading); color:var(--ink); font-variant-numeric:tabular-nums; margin:0 2px 0 var(--s1) }
+  #side .tiles { display:grid; grid-template-columns:1fr 1fr; gap:var(--s3); margin-top:var(--s4) }
+  #side .tile { border-radius:var(--r2); background:var(--fill); padding:var(--s3) var(--s4) var(--s3) } #side .tile b { display:block; font:var(--t-heading); font-size:28px; line-height:34px; font-variant-numeric:tabular-nums }
+  #side .tile span { display:inline-flex; align-items:center; gap:var(--s1); color:var(--muted); font:var(--t-caption) } #side .tile .tipbtn { margin-left:0 }
+  #side .two { display:flex; flex-direction:column; align-items:flex-end; min-width:0 } #side .two small { font:var(--t-caption); color:var(--muted); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+  #side .idc { cursor:pointer; border-radius:var(--r1); padding:2px 6px; margin-right:-6px } #side .idc:hover { background:var(--fill) }
   #side .st { display:flex; gap:var(--s3); align-items:flex-start; padding:var(--s3) var(--s4); border-radius:var(--r2); margin-top:var(--s3); font:var(--t-body) } #side .st > .i, #side .st summary > .i:first-child { flex:none; margin-top:2px } #side .st b { font:var(--t-label); display:inline-flex; align-items:center } #side .st span { display:block; margin-top:2px; opacity:.85 }
   #side .st.ok { background:var(--okbg); color:#14532d } #side .st.bad { background:var(--badbg); color:#7f1d1d } #side .st.warn { background:var(--warnbg); color:#78350f } #side .st.info { background:var(--fill); color:var(--ink-2) }
   #side details.st { display:block } #side details.st summary { display:flex; align-items:center; gap:var(--s3); cursor:pointer; list-style:none } #side details.st summary > b { flex:1 } #side details.st .checks { margin-top:var(--s3); background:rgba(255,255,255,.7); box-shadow:none }
@@ -655,7 +659,7 @@ function inspect(key) {
       + (tg || []).map(t => `<span class="pill" style="background:var(--fill);color:var(--ink-2)">${ico('tag', 'xs')}${esc(t)}</span>`).join('');
     body = `<div class="meta"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b><span title="${esc(fmtDate(c.date))}">${ago(c.ct)}</span></div>
       <div class="chips">${chips}</div>
-      <div class="rows">${row('Commit ID' , `<code>${esc(c.short)}</code><button class="mini" data-copy="${esc(c.hash)}" title="Copy full ID">${ico('copy', 'xs')}</button>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', fork && fork.map(esc).join(', '), 'split')}</div>
+      <div class="rows">${row('Commit ID' , `<code class="idc" data-copy="${esc(c.hash)}" title="Click to copy the full ID">${esc(c.short)}</code>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', fork && fork.map(esc).join(', '), 'split')}</div>
       ${it === ln.tip ? ciStatus(ln.ci) : ''}
       ${sec('Git commands', null, cmd('git show ' + c.short, 'Show the changes in this commit.') + cmd('git checkout ' + c.short, 'Go back to the project as it was here.'))}`;
   } else if (it.kind === 'pr') {
@@ -671,9 +675,9 @@ function inspect(key) {
     const cf = ln.conflict, tot = ln.ahead + ln.behind;
     band = band_(ln.color, (ln.is_base ? 'Main branch' : 'Branch') + info(ln.is_base ? 'main' : 'branch'), ln.name);
     const mbc = ln.mbm && L.at[ln.mbm];
-    const fork = ln.is_base ? '' : mbc ? `<a class="link" data-goto="${esc(ln.mbm)}"><code>${sh(mbc.c.hash)}</code></a> <span class="m">${esc(fmtDate(mbc.c.date))}</span>` : (ln.mbm || ln.mb) ? `<code>${sh(ln.mbm || ln.mb)}</code>` : '';
+    const fork = ln.is_base ? '' : mbc ? `<div class="two"><a class="link" data-goto="${esc(ln.mbm)}"><code>${sh(mbc.c.hash)}</code></a><small>${esc(mbc.c.msg)} · ${esc(fmtDate(mbc.c.date))}</small></div>` : (ln.mbm || ln.mb) ? `<code>${sh(ln.mbm || ln.mb)}</code>` : '';
     const stale = !ln.is_base && ageDays(ln) > 30 ? st('warn', 'clock', 'Stale', `Last commit ${ago(ln.commits[0].ct)}.`, 'stale') : '';
-    const counts = ln.is_base ? '' : `<div class="counts"><span>${ico('arrow-up', 'xs')}<b style="color:${ln.color}">${ln.ahead}</b> ahead${info('ahead')}</span><span>${ico('arrow-down', 'xs')}<b>${ln.behind}</b> behind${info('behind')}</span></div>${tot ? `<div class="bar"><i style="width:${ln.ahead / tot * 100}%;background:${ln.color}"></i><i style="flex:1;background:${BASE_COLOR};opacity:.35"></i></div>` : ''}`;
+    const counts = ln.is_base ? '' : `<div class="tiles"><div class="tile"><b style="color:${ln.color}">${ln.ahead}</b><span>${ico('arrow-up', 'xs')}Ahead${info('ahead')}</span></div><div class="tile"><b>${ln.behind}</b><span>${ico('arrow-down', 'xs')}Behind${info('behind')}</span></div></div>`;
     const files = cf && cf.changed.length ? sec('Changed files', cf.changed.length, (cf.files.length ? `<div class="cmdnote" style="margin:0 0 8px"><b style="color:var(--bad)">Red</b> files also changed on ${esc(base)}.</div>` : '') + fileList(cf.changed, cf.files), cf.state === 'conflict' || cf.state === 'possible') : '';
     const cmds = ln.is_base ? '' : sec('Git commands', null,
       (ln.ahead ? cmd(`git checkout ${base} && git merge ${ln.name}`, 'Merge this branch into ' + esc(base) + '.') : '') +
