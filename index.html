@@ -138,6 +138,7 @@
   #side .tile { border-radius:var(--r2); background:var(--fill); padding:var(--s3) var(--s4) var(--s3) } #side .tile b { display:block; font:var(--t-heading); font-size:28px; line-height:34px; font-variant-numeric:tabular-nums }
   #side .tile span { display:inline-flex; align-items:center; gap:var(--s1); color:var(--muted); font:var(--t-caption) } #side .tile .tipbtn { margin-left:0 }
   #side .two { display:flex; flex-direction:column; align-items:flex-end; min-width:0 } #side .two small { font:var(--t-caption); color:var(--muted); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+  #side .cmd span { white-space:normal; word-break:break-word; overflow:visible; padding:var(--s1) 0 } #side .cmd { align-items:center }
   #side .idc { cursor:pointer; border-radius:var(--r1); padding:2px 6px; margin-right:-6px } #side .idc:hover { background:var(--fill) }
   #side .st { display:flex; gap:var(--s3); align-items:flex-start; padding:var(--s3) var(--s4); border-radius:var(--r2); margin-top:var(--s3); font:var(--t-body) } #side .st > .i, #side .st summary > .i:first-child { flex:none; margin-top:2px } #side .st b { font:var(--t-label); display:inline-flex; align-items:center } #side .st span { display:block; margin-top:2px; opacity:.85 }
   #side .st.ok { background:var(--okbg); color:#14532d } #side .st.bad { background:var(--badbg); color:#7f1d1d } #side .st.warn { background:var(--warnbg); color:#78350f } #side .st.info { background:var(--fill); color:var(--ink-2) }
@@ -659,7 +660,7 @@ function inspect(key) {
       + (tg || []).map(t => `<span class="pill" style="background:var(--fill);color:var(--ink-2)">${ico('tag', 'xs')}${esc(t)}</span>`).join('');
     body = `<div class="meta"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b><span title="${esc(fmtDate(c.date))}">${ago(c.ct)}</span></div>
       <div class="chips">${chips}</div>
-      <div class="rows">${row('Commit ID' , `<code class="idc" data-copy="${esc(c.hash)}" title="Click to copy the full ID">${esc(c.short)}</code>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', fork && fork.map(esc).join(', '), 'split')}</div>
+      <div class="rows">${row('Date', esc(fmtDate(c.date)))}${row('Commit ID' , `<code class="idc" data-copy="${esc(c.hash)}" title="Click to copy the full ID">${esc(c.short)}</code>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', fork && fork.map(esc).join(', '), 'split')}</div>
       ${it === ln.tip ? ciStatus(ln.ci) : ''}
       ${sec('Git commands', null, cmd('git show ' + c.short, 'Show the changes in this commit.') + cmd('git checkout ' + c.short, 'Go back to the project as it was here.'))}`;
   } else if (it.kind === 'pr') {
