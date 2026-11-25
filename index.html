@@ -179,9 +179,21 @@
   #sug { margin-top:var(--s2); border-radius:var(--r2); max-height:200px; overflow:auto; display:none; box-shadow:0 0 0 1px var(--line) inset; padding:var(--s1) }
   #sug.open { display:block } #sug div { height:var(--c-sm); padding:0 var(--s2); border-radius:var(--r1); cursor:pointer; display:flex; align-items:center; gap:var(--s2); font:var(--t-body) }
   #sug div.on,#sug div:hover { background:var(--accent-bg) } #sug i { font:var(--t-caption-strong); margin-left:auto; color:var(--ok); background:var(--okbg); border-radius:var(--pill); padding:0 var(--s2) }
-  #help { right:var(--edge); top:calc(var(--edge) + var(--bar) + var(--s2)); padding:var(--s4); width:320px; max-width:calc(100vw - 2 * var(--edge)); max-height:calc(100vh - var(--edge) - (var(--edge) + var(--bar) + var(--s2))); overflow-y:auto; display:none }
-  #help.open { display:block } #help h3 { font:var(--t-title); margin-bottom:var(--s3) } #help ul { padding-left:var(--s4) } #help li { margin-top:var(--s2) } #help li .i { vertical-align:-3px }
-  .sw { display:inline-block; width:24px; height:0; border-top:3px solid; vertical-align:middle; margin-right:var(--s1) } .sw.d { border-top-style:dashed }
+  #help { right:var(--edge); top:calc(var(--edge) + var(--bar) + var(--s2)); padding:20px; width:368px; max-width:calc(100vw - 2 * var(--edge)); max-height:calc(100vh - var(--edge) - (var(--edge) + var(--bar) + var(--s2))); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; display:none }
+  #help.open { display:block } #help h3 { font:var(--t-heading); margin:0 0 var(--s2) }
+  #help h4 { font:var(--t-overline); letter-spacing:.06em; text-transform:uppercase; color:var(--faint); margin:var(--s4) 0 var(--s2) }
+  .hrow { display:grid; grid-template-columns:48px 1fr; gap:var(--s3); align-items:center; padding:var(--s1) 0 }
+  .hrow p { margin:0; color:var(--muted) } .hrow p b { color:var(--ink); font-weight:600 }
+  .hsw { display:grid; place-items:center; height:36px; border-radius:var(--r2); background:#f6f7f9; color:var(--ink) }
+  .hsw .m-head { display:block; width:32px; height:20px; border-radius:6px; background:#6d28d9 }
+  .hsw .m-card { display:block; width:34px; height:24px; border-radius:6px; border:2px solid #15803d; background:#dcebe3 }
+  .hsw .m-pr { display:block; width:34px; height:24px; border-radius:6px; border:2px solid #6d28d9; background:#fff }
+  .hsw .m-line { display:block; width:32px; border-top:3px solid #15803d } .hsw .m-line.d { border-top-style:dashed }
+  #help .keys { display:flex; flex-wrap:wrap; gap:var(--s2) var(--s4); margin:var(--s2) 0 0 60px; color:var(--muted); font:var(--t-caption) }
+  #help kbd { display:inline-block; min-width:22px; padding:1px 6px; margin-right:6px; text-align:center; font:var(--t-caption-strong); color:var(--ink); background:#fff; border:1px solid var(--line); border-bottom-width:2px; border-radius:6px }
+  #help .keys kbd + kbd { margin-left:-2px }
+  #help .htip { display:flex; align-items:flex-start; gap:var(--s3); margin:var(--s4) 0 0; padding:var(--s3) var(--s4); background:var(--accent-bg); border-radius:var(--r2); color:var(--ink-2) }
+  #help .htip .i { flex:none; margin-top:2px; color:var(--accent) }
   #empty { position:fixed; inset:0; display:none; place-items:center; color:var(--muted); pointer-events:none; text-align:center; font:var(--t-title); padding:0 20%; z-index:1 }
   #empty small { font:var(--t-body) }
   body.empty #zoom { display:none }
@@ -244,18 +256,13 @@
 </div>
 
 <div id="help" class="float">
-  <h3>How to read this board</h3>
-  <ul>
-    <li>Each <b>column is a branch</b>. The colored title is above the newest commit. Green is the main branch.</li>
-    <li>Each <b>card is a commit</b>. A commit is a saved copy of the code. <b>Newer commits are higher.</b></li>
-    <li>A white card with a colored border above a branch is a <b>pull request</b>.</li>
-    <li><span class="sw d"></span>A dashed line shows where a branch <b>split off</b> from main.</li>
-    <li><span class="sw"></span>A solid line into main shows a <b>merge</b>.</li>
-    <li><b>Drag</b> a card to move it. Drag a branch title to change the order of the columns. When you move something, the <b>Tidy up</b> <svg class="i" aria-hidden="true"><use href="#i-grid"/></svg> button appears. Select it to put all items back.</li>
-    <li><b>Zoom</b> with the mouse wheel, with two fingers on a trackpad, or with the + and - keys. Press <b>F</b> to fit everything on the screen.</li>
-    <li>Click an item. Map Git shows an explanation and the Git commands for it.</li>
-    <li>Hold the pointer over the <svg class="i" aria-hidden="true"><use href="#i-info"/></svg> icon next to a word. Map Git shows the meaning of the word.</li>
-  </ul>
+  <h3>How to read this map</h3>
+  <div class="hrow"><span class="hsw"><i class="m-head"></i></span><p><b>Branch.</b> One column. Green is main.</p></div>
+  <div class="hrow"><span class="hsw"><i class="m-card"></i></span><p><b>Commit.</b> One saved change. Newest is on top.</p></div>
+  <div class="hrow"><span class="hsw"><i class="m-pr"></i></span><p><b>Pull request.</b> A request to merge.</p></div>
+  <div class="hrow"><span class="hsw"><i class="m-line d"></i></span><p><b>Split.</b> Where a branch began.</p></div>
+  <div class="hrow"><span class="hsw"><i class="m-line"></i></span><p><b>Merge.</b> A branch joined main.</p></div>
+  <p class="htip"><svg class="i" aria-hidden="true"><use href="#i-info"/></svg>Point at this icon to see what a word means.</p>
 </div>
 
 <aside id="side" class="float"></aside>
