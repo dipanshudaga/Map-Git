@@ -129,6 +129,19 @@
   #side .band h2 { margin-top:var(--s2); font:var(--t-heading); word-break:break-word; padding-right:var(--s6) }
   #side .x { position:absolute; top:var(--s3); right:var(--s3); width:var(--c-sm); height:var(--c-sm); border-radius:var(--r1); color:#fff; display:grid; place-items:center } #side .x:hover { background:rgba(255,255,255,.2) }
   #side .body { padding:0 var(--s5) var(--s5) }
+  #side .meta { display:flex; align-items:center; gap:var(--s2); margin-top:var(--s4); color:var(--muted); font:var(--t-body) } #side .meta b { color:var(--ink); font:var(--t-label) } #side .meta span:last-child::before { content:"·"; margin-right:var(--s2) }
+  #side .chips { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s2); margin-top:var(--s3) } #side .chips .pill { height:24px; padding:0 var(--s3) } #side .arrow { color:var(--faint); display:inline-flex; transform:rotate(-90deg) }
+  #side .rows { margin-top:var(--s4) } #side .r { display:flex; justify-content:space-between; align-items:center; gap:var(--s4); min-height:32px; padding:var(--s1) 0; border-top:1px solid var(--line) } #side .r:first-child { border-top:0 }
+  #side .r > span { color:var(--muted); flex:none } #side .r > div { display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap; justify-content:flex-end; text-align:right; word-break:break-word } #side .m { color:var(--muted); font-weight:400 }
+  #side .mini { width:24px; height:24px; border-radius:var(--r1); display:grid; place-items:center; color:var(--faint) } #side .mini:hover { background:var(--fill); color:var(--ink) }
+  #side .counts { display:flex; gap:var(--s5); margin-top:var(--s4); font:var(--t-body); color:var(--muted) } #side .counts span { display:inline-flex; align-items:center; gap:var(--s1) } #side .counts b { font:var(--t-heading); color:var(--ink); font-variant-numeric:tabular-nums; margin:0 2px 0 var(--s1) }
+  #side .st { display:flex; gap:var(--s3); align-items:flex-start; padding:var(--s3) var(--s4); border-radius:var(--r2); margin-top:var(--s3); font:var(--t-body) } #side .st > .i, #side .st summary > .i:first-child { flex:none; margin-top:2px } #side .st b { font:var(--t-label); display:inline-flex; align-items:center } #side .st span { display:block; margin-top:2px; opacity:.85 }
+  #side .st.ok { background:var(--okbg); color:#14532d } #side .st.bad { background:var(--badbg); color:#7f1d1d } #side .st.warn { background:var(--warnbg); color:#78350f } #side .st.info { background:var(--fill); color:var(--ink-2) }
+  #side details.st { display:block } #side details.st summary { display:flex; align-items:center; gap:var(--s3); cursor:pointer; list-style:none } #side details.st summary > b { flex:1 } #side details.st .checks { margin-top:var(--s3); background:rgba(255,255,255,.7); box-shadow:none }
+  #side summary::-webkit-details-marker { display:none } #side details[open] > summary > .i:last-child { transform:rotate(180deg) }
+  #side .sec { margin-top:var(--s4); border-top:1px solid var(--line) } #side .sec summary { display:flex; align-items:center; gap:var(--s2); height:44px; cursor:pointer; list-style:none; font:var(--t-label); color:var(--ink-2) } #side .sec summary:hover { color:var(--ink) } #side .sec summary em { font-style:normal; color:var(--muted); font:var(--t-caption-strong); background:var(--fill); border-radius:var(--pill); padding:0 var(--s2); line-height:20px } #side .sec summary > .i:last-child { margin-left:auto; color:var(--faint) }
+  #side .sec > .files, #side .sec > .cmdnote:first-child { margin-top:0 }
+  #side .btn { display:flex; align-items:center; justify-content:center; gap:var(--s2); height:var(--c); margin-top:var(--s5); border-radius:var(--r2); background:var(--fill); color:var(--ink); font:var(--t-label); text-decoration:none } #side .btn:hover { background:var(--fill-2) }
   #side h4 { margin:var(--s5) 0 var(--s2) }
   .stats { display:grid; grid-template-columns:1fr 1fr; gap:var(--s3); margin-top:var(--s5) }
   .stat { border-radius:var(--r2); padding:var(--s3) var(--s4); background:#f6f7f9 } .stat b { display:block; font:var(--t-heading); font-variant-numeric:tabular-nums } .stat span { font:var(--t-caption); color:var(--muted) }
@@ -602,67 +615,73 @@ function drawEdges() {
 }
 
 // ---------- inspector ----------
-const cmd = c => `<div class="cmd"><span>${esc(c)}</span><button data-copy="${esc(c)}">${ico('copy', 'xs')}Copy</button></div>`;
-const kvRow = (k, v, t) => `<dt>${k}${t ? info(t) : ''}</dt><dd>${v}</dd>`;
+const cmd = (c, note) => `<div class="cmd"><span>${esc(c)}</span><button data-copy="${esc(c)}" title="Copy">${ico('copy', 'xs')}Copy</button></div>${note ? `<div class="cmdnote">${note}</div>` : ''}`;
 const laneChip = ln => `<a class="pill link" data-lane="${esc(ln.name)}" style="background:${tint(ln.color, .16)};color:${ln.color};text-decoration:none">${ico('branch', 'xs')}${esc(ln.name)}</a>`;
 const fileList = (files, clash = []) => files.length ? `<ul class="files">${files.slice(0, 80).map(f => `<li class="${clash.includes(f) ? 'clash' : ''}">${esc(f)}</li>`).join('')}${files.length > 80 ? `<li>…and ${files.length - 80} more</li>` : ''}</ul>` : '';
-function checksSection(ci) {
+// A quiet row: label on the left, value on the right.
+const row = (k, v, t) => v ? `<div class="r"><span>${k}${t ? info(t) : ''}</span><div>${v}</div></div>` : '';
+// A collapsible section. It is closed unless there is a reason to open it.
+const sec = (title, n, html, open) => html ? `<details class="sec"${open ? ' open' : ''}><summary>${title}${n != null ? `<em>${n}</em>` : ''}${ico('chevron-down', 'xs')}</summary>${html}</details>` : '';
+// A status line: icon, one bold word group, one short sentence.
+const st = (cls, icon, title, text, t) => `<div class="st ${cls}">${ico(icon)}<div><b>${title}${t ? info(t) : ''}</b>${text ? `<span>${text}</span>` : ''}</div></div>`;
+const ciStatus = ci => {
   if (!ci || !ci.checks) return '';
   const c = CI[ci.state], bad = ci.checks.filter(k => k.state === 'failure').length;
-  return `<h4>Checks (CI)${info('ci')}</h4><div class="callout ${c[2]}" style="margin:0 0 8px"><b class="t">${ico(c[0])}${ci.state === 'failure' ? bad + ' failed' : c[1]}</b>${ci.state === 'failure' ? 'Automatic tests or builds failed on the newest commit. Fix the problem before you merge.' : ci.state === 'pending' ? 'The checks still run on the newest commit.' : 'All automatic checks passed on the newest commit.'}</div>`
-    + (ci.checks.length ? `<ul class="checks">${ci.checks.map(k => `<li>${ciDot({ state: k.state })}${k.url ? `<a href="${esc(k.url)}" target="_blank" rel="noopener">${esc(k.name)}${ico('external', 'xs')}</a>` : esc(k.name)}</li>`).join('')}</ul>` : '');
-}
-function conflictCallout(ln, list = true) {
+  const list = ci.checks.length ? `<ul class="checks">${ci.checks.map(k => `<li>${ciDot({ state: k.state })}${k.url ? `<a href="${esc(k.url)}" target="_blank" rel="noopener">${esc(k.name)}${ico('external', 'xs')}</a>` : esc(k.name)}</li>`).join('')}</ul>` : '';
+  const title = ci.state === 'failure' ? `${bad} check${bad > 1 ? 's' : ''} failed` : ci.state === 'pending' ? 'Checks running' : 'Checks passed';
+  return `<details class="st ${c[2]}"${ci.state === 'failure' ? ' open' : ''}><summary>${ico(c[0])}<b>${title}${info('ci')}</b>${ci.checks.length ? ico('chevron-down', 'xs') : ''}</summary>${list}</details>`;
+};
+function conflictStatus(ln) {
   const cf = ln.conflict, base = data.base; if (!cf || ln.is_base) return '';
   const n = cf.files.length;
-  if (cf.state === 'merged') return `<div class="callout ok"><b class="t">${ico('check')}Fully merged${info('merged')}</b>All commits of this branch are already in <b>${esc(base)}</b>. You can delete the branch.</div>`;
-  if (cf.state === 'conflict') return `<div class="callout bad"><b class="t">${ico('alert')}Merge conflict${n ? ` in ${n} file${n > 1 ? 's' : ''}` : ''}${info('conflict')}</b>Both <b>${esc(ln.name)}</b> and <b>${esc(base)}</b> changed the same lines${cf.source === 'pr' ? ' (GitHub reports that this pull request cannot be merged)' : ''}. Git cannot choose between them. A person must choose, usually the author of the branch.</div>${n && list ? `<h4>Conflicting files</h4>${fileList(cf.files, cf.files)}` : ''}`;
-  if (cf.state === 'possible') return `<div class="callout warn"><b class="t">${ico('alert')}May conflict${info('conflict')}</b>${n} file${n > 1 ? 's' : ''} changed on <b>both</b> sides. The files clash only if the same lines changed. Map Git cannot check this without a clone.</div>${list ? `<h4>Files changed on both sides</h4>${fileList(cf.files, cf.files)}` : ''}`;
-  if (cf.state === 'clean') return `<div class="callout ok"><b class="t">${ico('check')}Merges cleanly</b>${ln.behind ? `<b>${esc(base)}</b> has new changes, but not in the same places as this branch.` : `<b>${esc(base)}</b> did not change after this branch split off.`}</div>`;
-  return `<div class="callout info"><b class="t">Conflict check not available</b>Not enough GitHub requests remain for this check. To raise the limit, run "gh auth login" in your terminal.</div>`;
+  if (cf.state === 'merged') return st('ok', 'check', 'Fully merged', `Everything is in <b>${esc(base)}</b>. You can delete this branch.`, 'merged');
+  if (cf.state === 'conflict') return st('bad', 'alert', `Merge conflict${n ? ` in ${n} file${n > 1 ? 's' : ''}` : ''}`, `Both sides changed the same lines${cf.source === 'pr' ? '. GitHub cannot merge this pull request' : ''}. A person must choose.`, 'conflict');
+  if (cf.state === 'possible') return st('warn', 'alert', 'May conflict', `${n} file${n > 1 ? 's' : ''} changed on both sides.`, 'conflict');
+  if (cf.state === 'clean') return st('ok', 'check', 'Merges cleanly', '');
+  return st('info', 'info', 'Conflict check not available', 'Too few GitHub requests remain. Run "gh auth login" to raise the limit.');
 }
 function inspect(key) {
   const it = L && L.items[key], s = $('side'); if (!it) return;
   $('help').classList.remove('open'); selKey = key; document.querySelectorAll('.sel').forEach(n => n.classList.remove('sel')); els[key] && els[key].classList.add('sel');
   const base = data.base, ln = it.ln; let band, body;
   const band_ = (color, kind, title) => `<div class="band" style="background:${color}"><button class="x" id="sx" aria-label="Close">${ico('x', 'lg')}</button><div class="kind">${kind}</div><h2>${esc(title)}</h2></div>`;
+  const sh = x => esc(String(x).slice(0, 7));
+  const prPill = pr => { const c = PRS[prState(pr)] || PRS.OPEN; return `<span class="pill" style="background:${c[1]};color:${c[0]}">${c[2]}</span>`; };
   if (it.kind === 'card') {
-    const c = it.c, merge = c.parents.length > 1, fork = ln.is_base && L.forkOf[c.hash];
+    const c = it.c, merge = c.parents.length > 1, fork = ln.is_base && L.forkOf[c.hash], tg = (data.tags || {})[c.hash];
     const parents = c.parents.map(p => L.at[p] ? `<a class="link" data-goto="${esc(p)}"><code>${esc(L.at[p].c.short)}</code></a>` : `<code>${esc(p.slice(0, 7))}</code>`).join(' + ');
-    let why = merge ? `<div class="callout info"><b class="t">This is a merge commit${info('merge')}</b>It joins two lines of work (${parents}) into <b>${esc(ln.name)}</b>. If both sides changed the same lines, Git stops. Then a person must resolve the <b>conflict</b>.</div>`
-      : `<div class="callout info"><b class="t">A saved copy of the code</b>${c.parents.length ? `This commit comes after ${parents}. Follow the links back to see the history of the project.` : 'This is the first commit. All other commits are built on it.'}</div>`;
-    if (fork) why += `<div class="callout info"><b class="t">Split point${info('split')}</b>${fork.map(esc).join(', ')} started from <b>${esc(ln.name)}</b> at this commit. New commits on <b>${esc(ln.name)}</b> do not appear in ${fork.length > 1 ? 'those branches' : 'that branch'} until a merge or a rebase.</div>`;
-    const tg = (data.tags || {})[c.hash];
-    if (tg) why += `<div class="callout info"><b class="t">${ico('tag')}${tg.map(esc).join(', ')}${info('tag')}</b>A tag is a permanent name for one commit. Usually, a tag marks a release. A tag never moves. A branch moves.</div>`;
     band = band_(ln.color, 'Commit' + info('commit'), c.msg);
-    body = `<dl class="kv">${kvRow('Branch', laneChip(ln), ln.is_base ? 'main' : 'branch')}${kvRow('Author', `<span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span>${esc(c.author)}`)}${kvRow('When', `${esc(fmtDate(c.date))} <span style="color:var(--muted)">· ${ago(c.ct)}</span>`)}${kvRow('Built on', parents || '-', 'parent')}${kvRow('ID', `<code>${esc(c.short)}</code>`, 'hash')}</dl>${why}
-      ${it === ln.tip ? checksSection(ln.ci) : ''}<h4>Try it</h4>${cmd('git show ' + c.short)}<div class="cmdnote">Show the changes in this commit.</div>${cmd('git checkout ' + c.short)}<div class="cmdnote">Show the project as it was at this commit.</div>`;
+    const chips = laneChip(ln) + (merge ? `<span class="pill" style="background:var(--fill);color:var(--ink-2)">Merge${info('merge')}</span>` : '')
+      + (tg || []).map(t => `<span class="pill" style="background:var(--fill);color:var(--ink-2)">${ico('tag', 'xs')}${esc(t)}</span>`).join('');
+    body = `<div class="meta"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b><span title="${esc(fmtDate(c.date))}">${ago(c.ct)}</span></div>
+      <div class="chips">${chips}</div>
+      <div class="rows">${row('Commit ID' , `<code>${esc(c.short)}</code><button class="mini" data-copy="${esc(c.hash)}" title="Copy full ID">${ico('copy', 'xs')}</button>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', fork && fork.map(esc).join(', '), 'split')}</div>
+      ${it === ln.tip ? ciStatus(ln.ci) : ''}
+      ${sec('Git commands', null, cmd('git show ' + c.short, 'Show the changes in this commit.') + cmd('git checkout ' + c.short, 'Go back to the project as it was here.'))}`;
   } else if (it.kind === 'pr') {
-    const pr = it.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN, bl = L.lanes[0];
+    const pr = it.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN;
     band = band_(col[0], `Pull request #${pr.number}` + info('pr'), pr.title);
     const rv = { APPROVED: ['Approved', 'ok'], CHANGES_REQUESTED: ['Changes requested', 'bad'], REVIEW_REQUIRED: ['Review needed', 'warn'] }[pr.review];
-    body = `<dl class="kv">${kvRow('Status', `<span class="pill" style="background:${col[1]};color:${col[0]}">${col[2]}</span>`)}${kvRow('Author', esc(pr.author || '?'))}${kvRow('From', laneChip(ln))}${kvRow('Into', `<span class="pill" style="background:${tint(BASE_COLOR, .16)};color:${BASE_COLOR}">${ico('branch', 'xs')}${esc(pr.base || base)}</span>`)}${rv ? kvRow('Review', `<span class="pill" style="background:var(--${rv[1]}bg);color:var(--${rv[1] === 'ok' ? 'ok' : rv[1] === 'bad' ? 'bad' : 'warn'})">${rv[0]}</span>`) : ''}${pr.created ? kvRow('Opened', ago(Date.parse(pr.created) / 1000)) : ''}</dl>
-      <div class="callout info"><b class="t">What is a pull request?</b>A request to merge this branch into <b>${esc(pr.base || base)}</b>. Other people review and discuss the changes first.</div>
-      ${pr.state === 'OPEN' ? conflictCallout(ln) : ''}${checksSection(ln.ci)}${pr.url ? `<h4>On GitHub</h4><a class="link" href="${esc(pr.url)}" target="_blank" rel="noopener">Open pull request ${ico('external', 'xs')}</a>` : ''}`;
+    body = `<div class="meta"><span class="av" style="background:${avColor(pr.author || '?')}">${esc(initials(pr.author || '?'))}</span><b>${esc(pr.author || '?')}</b>${pr.created ? `<span>opened ${ago(Date.parse(pr.created) / 1000)}</span>` : ''}</div>
+      <div class="chips">${prPill(pr)}${rv ? `<span class="pill" style="background:var(--${rv[1]}bg);color:var(--${rv[1]})">${rv[0]}</span>` : ''}</div>
+      <div class="chips flow">${laneChip(ln)}<span class="arrow">${ico('arrow-down', 'xs')}</span><span class="pill" style="background:${tint(BASE_COLOR, .16)};color:${BASE_COLOR}">${ico('branch', 'xs')}${esc(pr.base || base)}</span></div>
+      ${pr.state === 'OPEN' ? conflictStatus(ln) : ''}${ciStatus(ln.ci)}
+      ${pr.url ? `<a class="btn" href="${esc(pr.url)}" target="_blank" rel="noopener">${ico('github')}Open on GitHub${ico('external', 'xs')}</a>` : ''}`;
   } else {
     const cf = ln.conflict, tot = ln.ahead + ln.behind;
     band = band_(ln.color, (ln.is_base ? 'Main branch' : 'Branch') + info(ln.is_base ? 'main' : 'branch'), ln.name);
-    let why;
-    if (ln.is_base) why = `<div class="callout info"><b class="t">The main branch</b>Finished work from other branches is merged into <b>${esc(ln.name)}</b>. Click a branch to compare it with <b>${esc(ln.name)}</b>.</div>`;
-    else {
-      const p = [];
-      p.push(ln.ahead ? `<b>${ico('arrow-up', 'xs')} ${ln.ahead} ahead:</b> ${ln.ahead} commit${ln.ahead > 1 ? 's' : ''} that <b>${esc(base)}</b> does not have. This work waits to be merged.` : '');
-      p.push(ln.behind ? `<b>${ico('arrow-down', 'xs')} ${ln.behind} behind:</b> <b>${esc(base)}</b> received ${ln.behind} new commit${ln.behind > 1 ? 's' : ''} after this branch split off. Merge them into this branch to make it current.` : '');
-      why = `<div class="callout info">${p.filter(Boolean).join('<br><br>') || 'This branch is the same as ' + esc(base)}</div>`;
-    }
-    const mbc = ln.mbm && L.at[ln.mbm], sh = x => esc(String(x).slice(0, 7));
-    const forkRow = ln.is_base ? '' : kvRow('Forked from', mbc ? `<a class="link" data-goto="${esc(ln.mbm)}"><code>${sh(mbc.c.hash)}</code></a> on ${esc(base)} <span style="color:var(--muted)">${esc(fmtDate(mbc.c.date))}</span>` : (ln.mbm || ln.mb) ? `<code>${sh(ln.mbm || ln.mb)}</code> <span style="color:var(--muted)">older than the loaded history. Map Git draws no line.</span>` : '<span style="color:var(--muted)">unknown</span>', 'forked');
-    const stale = !ln.is_base && ageDays(ln) > 30 ? `<div class="callout warn"><b class="t">${ico('clock')}Stale${info('stale')}</b>The last commit is from ${ago(ln.commits[0].ct)}. If nobody uses this branch, delete it.</div>` : '';
-    const filesHtml = cf && cf.changed.length ? `<h4>Files changed on this branch (${cf.changed.length})</h4><div class="cmdnote" style="margin:0 0 8px">${cf.files.length ? '<b style="color:var(--bad)">Red</b> files also changed on ' + esc(data.base) + '. ' : ''}</div>${fileList(cf.changed, cf.files)}` : '';
-    const cmds = ln.is_base ? '' : `<h4>Try it</h4>${ln.ahead ? cmd(`git checkout ${base} && git merge ${ln.name}`) + '<div class="cmdnote">Merge this branch into ' + esc(base) + '.</div>' : ''}${ln.behind ? cmd(`git checkout ${ln.name} && git merge ${base}`) + '<div class="cmdnote">Merge the main branch into this branch. Resolve conflicts here.</div>' : ''}${cmd(`git log ${base}..${ln.name} --oneline`)}<div class="cmdnote">List the commits that only this branch has.</div>`;
-    body = `${ln.is_base ? '' : `<div class="stats"><div class="stat"><b style="color:${ln.color}">${ln.ahead}</b><span>commits ahead${info('ahead')}</span></div><div class="stat"><b>${ln.behind}</b><span>commits behind${info('behind')}</span></div></div>${tot ? `<div class="bar"><i style="width:${ln.ahead / tot * 100}%;background:${ln.color}"></i><i style="flex:1;background:${BASE_COLOR};opacity:.45"></i></div>` : ''}`}
-      <dl class="kv">${forkRow}${''}${ln.commits.length ? kvRow('Updated', ago(ln.commits[0].ct)) : ''}${ln.pr ? kvRow('PR', `<a class="link" data-key="pr:${esc(ln.name)}">#${ln.pr.number}</a> <span class="pill" style="background:${(PRS[prState(ln.pr)] || PRS.OPEN)[1]};color:${(PRS[prState(ln.pr)] || PRS.OPEN)[0]}">${(PRS[prState(ln.pr)] || PRS.OPEN)[2]}</span>`, 'pr') : ''}</dl>
-      ${why}${stale}${conflictCallout(ln, false)}${checksSection(ln.ci)}${filesHtml}${cmds}`;
+    const mbc = ln.mbm && L.at[ln.mbm];
+    const fork = ln.is_base ? '' : mbc ? `<a class="link" data-goto="${esc(ln.mbm)}"><code>${sh(mbc.c.hash)}</code></a> <span class="m">${esc(fmtDate(mbc.c.date))}</span>` : (ln.mbm || ln.mb) ? `<code>${sh(ln.mbm || ln.mb)}</code>` : '';
+    const stale = !ln.is_base && ageDays(ln) > 30 ? st('warn', 'clock', 'Stale', `Last commit ${ago(ln.commits[0].ct)}.`, 'stale') : '';
+    const counts = ln.is_base ? '' : `<div class="counts"><span>${ico('arrow-up', 'xs')}<b style="color:${ln.color}">${ln.ahead}</b> ahead${info('ahead')}</span><span>${ico('arrow-down', 'xs')}<b>${ln.behind}</b> behind${info('behind')}</span></div>${tot ? `<div class="bar"><i style="width:${ln.ahead / tot * 100}%;background:${ln.color}"></i><i style="flex:1;background:${BASE_COLOR};opacity:.35"></i></div>` : ''}`;
+    const files = cf && cf.changed.length ? sec('Changed files', cf.changed.length, (cf.files.length ? `<div class="cmdnote" style="margin:0 0 8px"><b style="color:var(--bad)">Red</b> files also changed on ${esc(base)}.</div>` : '') + fileList(cf.changed, cf.files), cf.state === 'conflict' || cf.state === 'possible') : '';
+    const cmds = ln.is_base ? '' : sec('Git commands', null,
+      (ln.ahead ? cmd(`git checkout ${base} && git merge ${ln.name}`, 'Merge this branch into ' + esc(base) + '.') : '') +
+      (ln.behind ? cmd(`git checkout ${ln.name} && git merge ${base}`, 'Bring ' + esc(base) + ' into this branch.') : '') +
+      cmd(`git log ${base}..${ln.name} --oneline`, 'List the commits only this branch has.'));
+    body = `${counts}
+      <div class="rows">${ln.is_base ? '' : row('Forked from', fork)}${ln.commits.length ? row('Updated', ago(ln.commits[0].ct)) : ''}${ln.pr ? row('Pull request', `<a class="link" data-key="pr:${esc(ln.name)}">#${ln.pr.number}</a> ${prPill(ln.pr)}`, 'pr') : ''}</div>
+      ${stale}${conflictStatus(ln)}${ciStatus(ln.ci)}${files}${cmds}`;
   }
   s.innerHTML = band + `<div class="body">${body}</div>`; s.classList.add('open'); document.body.classList.add('side'); s.scrollTop = 0;
 }
