@@ -90,6 +90,7 @@
   .head .n span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
   .head .sub { display:flex; flex-wrap:wrap; gap:var(--s1); margin-top:var(--s2) }
   .head .when { margin-top:var(--s2); font:var(--t-caption); opacity:.9 }
+  .head.deleted { outline:2px dashed rgba(255,255,255,.75); outline-offset:-7px }
   .head.stale { filter:saturate(.55) } .head.dragging,.card.dragging,.pr.dragging { cursor:grabbing; z-index:50 }
   .chip,.pill { display:inline-flex; align-items:center; gap:var(--s1); height:20px; padding:0 var(--s2); border-radius:var(--pill); font:var(--t-caption-strong); white-space:nowrap }
   .chip { background:rgba(255,255,255,.24) }
@@ -302,7 +303,7 @@ const TERMS = {
   conflict: ['Merge conflict', 'Two branches changed the same lines. Git cannot choose between them. A person must choose.'],
   ahead: ['Ahead', 'The commits that this branch has and main does not have. This work waits to be merged.'],
   behind: ['Behind', 'The commits that main received after this branch split off. Merge them into the branch to make it current.'],
-  merged: ['Fully merged', 'All the work of this branch is already in main. You can delete the branch.'],
+  merged: ['Merged', 'All the work of this branch is already in main. You can delete the branch.'],
   stale: ['Stale', 'A branch that nobody changed for a long time.'],
   ci: ['CI checks', 'Automatic checks, such as tests, that run on a commit. A green mark shows that the checks passed.'],
   tag: ['Tag', 'A permanent name for one commit. Usually, a tag marks a release, such as v1.0.'],
@@ -343,11 +344,12 @@ const expKey = () => 'gc-exp-' + cur, offKey = () => 'gc-off2-' + cur, ordKey = 
 
 // ---------- layout (pure function of data + filters + expanded) ----------
 function layout() {
-  let lanes = data.lanes.map((ln, i) => ({ ...ln, i }));
+  let lanes = data.lanes.map((ln, i) => ln.virtual && ln.pr ? { ...ln, i, prInfo: ln.pr, pr: null } : { ...ln, i });  // a merged-work column names its pull request in the title, not on a separate white card
   let kept = 0;  // "Branches" shows the newest N of what is loaded, so changing it is instant
-  lanes = lanes.filter(ln => ln.is_base || ln.virtual || (
-    (!flt.stale || ageDays(ln) < flt.stale) && (!flt.merged || ln.ahead > 0) && (!flt.pr || (ln.pr && ln.pr.state === 'OPEN')) && (!flt.conf || (ln.conflict && (ln.conflict.state === 'conflict' || ln.conflict.state === 'possible'))) && ++kept <= flt.max));
-  const rank = l => { const k = laneOrder.indexOf(l.name); return k >= 0 ? k : 1e6 + l.i; };
+  lanes = lanes.filter(ln => ln.is_base || (ln.virtual ? !flt.merged : (
+    (!flt.stale || ageDays(ln) < flt.stale) && (!flt.merged || ln.ahead > 0) && (!flt.pr || (ln.pr && ln.pr.state === 'OPEN')) && (!flt.conf || (ln.conflict && (ln.conflict.state === 'conflict' || ln.conflict.state === 'possible'))) && ++kept <= flt.max)));
+  const mi = {}; data.lanes[0].commits.forEach((c, i) => { mi[c.hash] = i; });  // merged columns sit nearest main, the newest merge first, so lines cross less
+  const rank = l => { const k = laneOrder.indexOf(l.name); return k >= 0 ? k : l.mergedIn && l.mergedIn in mi ? 1e5 + mi[l.mergedIn] : 1e6 + l.i; };
   lanes = [lanes[0], ...lanes.slice(1).sort((a, b) => rank(a) - rank(b))];  // main line stays first; the rest follow the order you dragged them into
   lanes.forEach((ln, i) => { ln.mbm = ln.mb_main || ln.mb; ln.col = i; ln.color = ln.is_base ? BASE_COLOR : COLORS[(ln.i - 1) % COLORS.length]; ln.x = i * COLX; ln.stale = !ln.is_base && flt.staleMark && ageDays(ln) > 90; });
   const base = lanes[0], baseIdx = Object.fromEntries(base.commits.map((c, i) => [c.hash, i]));
@@ -409,8 +411,18 @@ function layout() {
   const order = [], seen = new Set();
   const visit = h => { if (!(h in owner) || seen.has(h)) return; seen.add(h); rpar(h).forEach(visit); order.push(h); };
   Object.keys(owner).sort((a, b) => byHash[a].ct - byHash[b].ct).forEach(visit);
-  const row = {}, last = new Map(lanes.map(l => [l, -1]));
-  for (const h of order) { const ln = owner[h]; row[h] = Math.max(last.get(ln) + 1, ...rpar(h).filter(p => p in row).map(p => row[p] + 1)); last.set(ln, row[h]); }
+  let row = {}, last = new Map(lanes.map(l => [l, -1]));
+  const place = forced => { row = {}; last = new Map(lanes.map(l => [l, -1]));
+    for (const h of order) { const ln = owner[h]; row[h] = h in forced ? forced[h] : Math.max(last.get(ln) + 1, ...rpar(h).filter(p => p in row).map(p => row[p] + 1)); last.set(ln, row[h]); } };
+  place({});
+  // Merged work sits right under the commit that merged it, not at its old date, so the line between them stays short.
+  const pull = {};
+  for (const ln of lanes) if (ln.mergedIn && ln.mergedIn in row) {
+    const own = ln.shown.filter(c => owner[c.hash] === ln).sort((a, b) => a.ct - b.ct), rm = row[ln.mergedIn];
+    const ok = own.length && own.every((c, k) => rm - own.length + k > Math.max(-1, ...rpar(c.hash).filter(p => p in row).map(p => row[p])));
+    if (ok) own.forEach((c, k) => { pull[c.hash] = rm - own.length + k; });
+  }
+  if (Object.keys(pull).length) place(pull);
   const maxRow = Math.max(0, ...Object.values(row));
   const y0 = 296;  // room above the newest row for titles and PR cards
   const items = {};  // key -> {key, kind, lane, x, y, w, h, ...}
@@ -505,11 +517,12 @@ function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
   };
   for (const ln of L.lanes) {
     const cf = ln.conflict, st = cf && cf.state;
-    let chips = ln.is_base ? '<span class="chip">main branch</span>' : ln.virtual ? `<span class="chip">${ico('check', 'xs')}Merged</span>` : ln.ahead === 0 ? `<span class="chip">${mergeOf(ln) || (ln.pr && ln.pr.state === 'MERGED') ? ico('check', 'xs') + 'Fully merged' : ln.behind ? 'Nothing new' : 'No commits yet'}</span>` : `<span class="chip">${ico('arrow-up', 'xs')}${ln.ahead}</span>` + (ln.behind ? `<span class="chip">${ico('arrow-down', 'xs')}${ln.behind}</span>` : '');
+    let chips = ln.is_base ? '<span class="chip">main branch</span>' : ln.virtual ? `<span class="chip">${ico('check', 'xs')}Merged · deleted</span>` : ln.ahead === 0 ? `<span class="chip">${mergeOf(ln) || (ln.pr && ln.pr.state === 'MERGED') ? ico('check', 'xs') + 'Merged' : ln.behind ? 'Nothing new' : 'No commits yet'}</span>` : `<span class="chip">${ico('arrow-up', 'xs')}${ln.ahead}</span>` + (ln.behind ? `<span class="chip">${ico('arrow-down', 'xs')}${ln.behind}</span>` : '');
     if (!ln.is_base && ln.ahead) chips += st === 'conflict' ? `<span class="chip bad">${ico('alert', 'xs')}Conflict</span>` : st === 'possible' ? `<span class="chip warn">${ico('alert', 'xs')}May conflict</span>` : st === 'clean' ? `<span class="chip ok">${ico('check', 'xs')}Clean</span>` : '';
     if (ln.ci) chips += `<span class="chip ${CI[ln.ci.state][2]}">${ico(CI[ln.ci.state][0], 'xs')}CI</span>`;
     if (!ln.is_base && ageDays(ln) > 60) chips += `<span class="chip">${ico('clock', 'xs')}${Math.round(ageDays(ln) / 30)}mo</span>`;
-    mk(ln.headItem, `head${ageDays(ln) > 180 && !ln.is_base ? ' stale' : ''}`, `<div class="n">${ico('branch')}<span title="${esc(ln.name)}">${esc(ln.name)}</span></div><div class="sub">${chips}</div><div class="when">${ln.commits.length ? (ln.is_base ? 'Latest ' : 'Updated ') + esc(fmtDate(ln.commits[0].date)) : ''}</div>`).style.background = ln.color;
+    const headTip = ln.is_base ? 'The main branch. Finished work is merged into it.' : ln.virtual ? (ln.prInfo ? `Pull request #${ln.prInfo.number} was merged on GitHub.` : 'This work was merged into main.') + ' The branch is deleted, but its commits stay in main.' : ln.ahead === 0 && (mergeOf(ln) || (ln.pr && ln.pr.state === 'MERGED')) ? 'All of this branch is already in main. The branch still exists.' : ln.ahead === 0 ? 'This branch has no commits of its own.' : `${ln.ahead} commit${ln.ahead > 1 ? 's' : ''} not in ${data.base} yet` + (ln.behind ? `, and ${data.base} has ${ln.behind} newer.` : '.');
+    const hd = mk(ln.headItem, `head${ageDays(ln) > 180 && !ln.is_base ? ' stale' : ''}${ln.virtual ? ' deleted' : ''}`, `<div class="n">${ico(ln.prInfo ? 'pr' : 'branch')}<span title="${esc(ln.prInfo ? 'Pull request #' + ln.prInfo.number + ' ' + ln.prInfo.title : ln.name)}">${esc(ln.prInfo ? 'PR #' + ln.prInfo.number + ' · ' + ln.prInfo.title : ln.name)}</span></div><div class="sub">${chips}</div><div class="when">${ln.commits.length ? (ln.is_base ? 'Latest ' : 'Updated ') + esc(fmtDate(ln.commits[0].date)) : ''}</div>`); hd.style.background = ln.color; hd.dataset.tip = headTip; hd.dataset.tipt = ln.virtual ? 'Merged work' : ln.is_base ? 'Main branch' : 'Branch';
     if (ln.prItem) {
       const pr = ln.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN;
       const m = pr.state !== 'OPEN' ? '' : st === 'conflict' || pr.mergeable === 'CONFLICTING' ? '<span class="pill" style="background:var(--badbg);color:var(--bad)">' + ico('alert', 'xs') + 'Conflict</span>' : st === 'possible' ? '<span class="pill" style="background:var(--warnbg);color:var(--warn)">' + ico('alert', 'xs') + 'May conflict</span>' : '<span class="pill" style="background:var(--okbg);color:var(--ok)">' + ico('check', 'xs') + 'Can merge</span>';
@@ -518,12 +531,14 @@ function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
   }
   for (const it of Object.values(L.items)) if (it.kind === 'card') {
     const c = it.c, ln = it.ln, merge = c.parents.length > 1, fork = L.forkOf[c.hash];
-    const tag = merge ? `<span class="tag" style="color:${ln.color}">MERGE</span>` : fork ? `<span class="tag" style="color:#475569" title="${esc(fork.join(', '))} started from this commit">SPLIT</span>` : '';
+    const tag = merge ? `<span class="tag" style="color:${ln.color}" title="${/^Merge pull request/.test(c.msg) ? 'A pull request was merged here' : 'Two lines of work were joined here'}">${/^Merge pull request/.test(c.msg) ? 'PR MERGE' : 'MERGE'}</span>` : fork ? `<span class="tag" style="color:#475569" title="${esc(fork.join(', '))} started from this commit">SPLIT</span>` : '';
+    const tipText = merge ? plainMerge(c, data.base) : fork ? fork.join(', ') + (fork.length > 1 ? ' started' : ' started') + ' from this commit.' : '';
     const d = mk(it, `card${merge ? ' merge' : ''}${fresh.has(c.hash) ? ' fresh' : ''}`,
       `${tagsHtml(c.hash)}<div class="r1"><span class="h" style="color:${ln.color}">${esc(c.short)}</span><span>${it === ln.tip ? ciDot(ln.ci) : ''}${esc(fmtDate(c.date))}</span></div><div class="m">${esc(c.msg)}</div>
        <div class="a"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b>${tag}</div>`);
     const t = tint(ln.color, merge ? .28 : .14);
     d.style.background = `linear-gradient(${t},${t}),#fff`; d.style.borderColor = ln.color;
+    if (tipText) { d.dataset.tip = tipText; d.dataset.tipt = merge ? (/^Merge pull request/.test(c.msg) ? 'PR MERGE' : 'MERGE') : 'SPLIT'; } else { delete d.dataset.tip; delete d.dataset.tipt; }
   }
   for (const ln of L.lanes) for (const it of ln.gaps || []) {
     const g = it.gap, d = mk(it, 'more', `${ico('chevron-down')}Show ${g.count} hidden commit${g.count > 1 ? 's' : ''}`); d.style.borderColor = d.style.color = ln.color; d.onclick = () => toggleGap(g);
@@ -639,7 +654,15 @@ const fileList = (files, clash = []) => files.length ? `<ul class="files">${file
 // A quiet row: label on the left, value on the right.
 const row = (k, v, t, wide) => v ? `<div class="r${wide ? ' w' : ''}"><span>${k}${t ? info(t) : ''}</span><div>${v}</div></div>` : '';
 // A commit link. On the map: jump to it. Not on the map: open it on GitHub.
-const cref = h => L.at[h] ? `<a class="link" data-goto="${esc(h)}"><code>${esc(L.at[h].c.short)}</code></a>` : `<a class="link" href="https://github.com/${esc(String(cur).replace(/^gh:/, ''))}/commit/${esc(h)}" target="_blank" rel="noopener" title="Not on the map. Open on GitHub"><code>${esc(h.slice(0, 7))}</code>${ico('external', 'xs')}</a>`;
+// A commit that main folded away: open the fold that holds it, then jump to it.
+const revealCommit = h => {
+  const all = data.lanes[0].commits, i = all.findIndex(c => c.hash === h), ln = L.lanes[0]; if (i < 0) return false;
+  for (const g of ln.gapRuns || []) { const a = all.findIndex(c => c.hash === g.after.hash), b = all.findIndex(c => c.hash === g.before.hash); if (i > a && i < b) { expanded.add(g.key); draw(false); focusKey(h, true); return true; } }
+  const lastShown = ln.shown.length ? all.findIndex(c => c.hash === ln.shown[ln.shown.length - 1].hash) : -1, lastIdx = lastShown - (ln.tailShown || 0);
+  if (i > lastIdx) { tailBy[ln.name] = Math.max(tailBy[ln.name] || 0, i - lastIdx); draw(false); focusKey(h, true); return true; }
+  return false;
+};
+const cref = h => L.at[h] ? `<a class="link" data-goto="${esc(h)}"><code>${esc(L.at[h].c.short)}</code></a>` : data.lanes[0].commits.some(c => c.hash === h) ? `<a class="link" data-reveal="${esc(h)}" title="Hidden on the map. Click to show it"><code>${esc(h.slice(0, 7))}</code></a>` : `<a class="link" href="https://github.com/${esc(String(cur).replace(/^gh:/, ''))}/commit/${esc(h)}" target="_blank" rel="noopener" title="Not on the map. Open on GitHub"><code>${esc(h.slice(0, 7))}</code>${ico('external', 'xs')}</a>`;
 const chipOf = n => { const l = L.lanes.find(x => x.name === n); return l ? laneChip(l) : `<span class="pill" style="background:var(--fill);color:var(--ink-2)">${esc(n)}</span>`; };
 // A collapsible section. It is closed unless there is a reason to open it.
 const sec = (title, n, html, open) => html ? `<details class="sec"${open ? ' open' : ''}><summary>${title}${n != null ? `<em>${n}</em>` : ''}${ico('chevron-down', 'xs')}</summary>${html}</details>` : '';
@@ -653,13 +676,16 @@ const ciStatus = ci => {
   return `<details class="st ${c[2]}"${ci.state === 'failure' ? ' open' : ''}><summary>${ico(c[0])}<b>${title}${info('ci')}</b>${ci.checks.length ? ico('chevron-down', 'xs') : ''}</summary>${list}</details>`;
 };
 // The commit on main that brought a fully merged branch in: it has the branch's last commit as a second parent.
-const mergeOf = ln => ln.is_base || ln.ahead || !ln.mbm ? null : (data.lanes[0].commits || []).find(c => c.parents.length > 1 && c.parents.slice(1).includes(ln.mbm)) || null;
+const mergeOf = ln => {  // ln.tip is a card after layout, a commit ID before it
+  const t = ln.is_base || ln.ahead ? null : ln.tip && ln.tip.c ? ln.tip.c.hash : ln.mbm; if (!t) return null;
+  return (data.lanes[0].commits || []).find(c => c.parents.length > 1 && c.parents.slice(1).includes(t)) || null;
+};
 function conflictStatus(ln) {
   const cf = ln.conflict, base = data.base; if (!cf || ln.is_base) return '';
   const n = cf.files.length;
   if (cf.state === 'merged') {
     const mc = mergeOf(ln);
-    if (mc || (ln.pr && ln.pr.state === 'MERGED')) return st('ok', 'check', 'Fully merged', mc ? `Merged in <a class="link" data-goto="${esc(mc.hash)}"><code>${esc(mc.short)}</code></a>. Safe to delete.` : `All of it is in <b>${esc(base)}</b>. Safe to delete.`, 'merged');
+    if (mc || (ln.pr && ln.pr.state === 'MERGED')) return st('ok', 'check', 'Merged', mc ? `Merged in <a class="link" data-goto="${esc(mc.hash)}"><code>${esc(mc.short)}</code></a>. The branch still exists. Safe to delete.` : `All of it is in <b>${esc(base)}</b>. Safe to delete.`, 'merged');
     return ln.behind ? st('info', 'info', 'Nothing new', `All its commits are already in <b>${esc(base)}</b>.`) : st('info', 'info', 'No commits yet', 'Nothing was saved on this branch.');
   }
   if (cf.state === 'conflict') return st('bad', 'alert', `Merge conflict${n ? ` in ${n} file${n > 1 ? 's' : ''}` : ''}`, cf.source === 'pr' ? 'GitHub cannot merge this pull request.' : 'Both sides changed the same lines.', 'conflict');
@@ -699,9 +725,13 @@ function inspect(key) {
       ${rv && pr.state === 'OPEN' ? st(rv[1], rv[2], rv[0], '') : ''}${pr.state === 'OPEN' ? conflictStatus(ln) : ''}${ciStatus(ln.ci)}
       ${pr.url ? `<a class="btn primary" href="${esc(pr.url)}" target="_blank" rel="noopener">${ico('github')}Open on GitHub${ico('external', 'xs')}</a>` : ''}`;
   } else if (ln.virtual) {
-    band = band_(ln.color, 'Merged work' + info('merge'), ln.name);
-    body = `<div class="rows">${row('Merged in', cref(ln.mergedIn))}${row('Split from', ln.mb ? cref(ln.mb) : '')}${row('Commits', String(ln.commits.length))}${ln.commits.length ? row('Last commit', ago(ln.commits[0].ct)) : ''}</div>
-      ${st('ok', 'check', 'Fully merged', 'These commits came into <b>' + esc(base) + '</b> with the merge commit.', 'merged')}`;
+    const pi = ln.prInfo, mainSet = new Set(data.lanes[0].commits.map(c => c.hash)), only = ln.commits.length === 1 ? ln.commits[0] : null;
+    const nothing = only && only.parents.length > 1 && only.parents.every(p => mainSet.has(p)), carried = nothing ? only.parents[only.parents.length - 1] : null;
+    band = band_(ln.color, 'Merged work' + info('merge'), pi ? `PR #${pi.number} · ${pi.title}` : ln.name);
+    const what = (pi ? `Pull request #${pi.number} “${esc(pi.title)}” was merged on GitHub. The branch (${esc(ln.name)}) is deleted, so this column is named after the pull request.` : 'The branch is deleted, so its name is unknown.')
+      + (nothing ? ` This merge added no new commits: the work it brings in (${cref(carried)}) was already in <b>${esc(base)}</b>.` : '') + ` It joined <b>${esc(base)}</b> at ${cref(ln.mergedIn)}.`;
+    body = `<div class="rows">${pi ? row('Pull request', `<a class="link" href="${esc(pi.url)}" target="_blank" rel="noopener">#${pi.number}${ico('external', 'xs')}</a> ${prPill(pi)}`, 'pr') : ''}${row('Merged in', cref(ln.mergedIn))}${row('Split from', ln.mb ? cref(ln.mb) : '')}${row('Commits', nothing ? '1 · the merge only' : String(ln.commits.length))}${nothing ? row('Already in main', cref(carried)) : ''}${ln.commits.length ? row('Last commit', ago(ln.commits[0].ct)) : ''}</div>
+      ${st('info', 'info', 'What is this?', what)}`;
   } else {
     const cf = ln.conflict, tot = ln.ahead + ln.behind;
     band = band_(ln.color, (ln.is_base ? 'Main branch' : 'Branch') + info(ln.is_base ? 'main' : 'branch'), ln.name);
@@ -717,6 +747,14 @@ function inspect(key) {
   }
   s.innerHTML = band + `<div class="body">${body}</div>`; s.classList.add('open'); document.body.classList.add('side'); s.scrollTop = 0;
 }
+// One plain sentence for a merge commit, so the Git message does not have to be decoded.
+const plainMerge = (c, base) => {
+  let x;
+  if ((x = /^Merge pull request #(\d+) from (\S+)/.exec(c.msg))) return `Pull request #${x[1]} was merged on GitHub (branch ${x[2].split('/').slice(-1)[0]}).`;
+  if ((x = /^Merge remote-tracking branch '([^']+)'/.exec(c.msg))) return /^origin\//.test(x[1]) ? `You pulled GitHub's copy of ${x[1].slice(7)} into your branch.` : `You joined ${x[1]} into your branch.`;
+  if ((x = /^Merge branch '([^']+)'(?: of \S+)?(?: into (\S+))?/.exec(c.msg))) return `You merged the branch ${x[1]} into ${x[2] || base}.`;
+  return 'Two lines of work were joined here.';
+};
 const hideTip = () => { $('tip').style.display = 'none'; document.querySelectorAll('.tipbtn.on').forEach(n => n.classList.remove('on')); };
 const showTip = b => {
   const t = TERMS[b.dataset.term], tip = $('tip'); if (!t) return;
@@ -727,7 +765,12 @@ const showTip = b => {
 };
 // The explanation shows while the pointer is over the icon (or the icon has keyboard focus). On touch screens, where there is no hover, a tap opens it.
 const canHover = matchMedia('(hover: hover)');
-document.addEventListener('mouseover', e => { const b = e.target.closest('.tipbtn'); if (b && canHover.matches) showTip(b); });
+document.addEventListener('mouseover', e => { const b = e.target.closest('.tipbtn'); if (b && canHover.matches) showTip(b);
+  const c = !b && e.target.closest('[data-tip]'); if (c && canHover.matches && !c.contains(e.relatedTarget)) {  // a plain sentence on heads and on SPLIT and MERGE cards
+    const tip = $('tip'); hideTip(); tip.innerHTML = `<b>${esc(c.dataset.tipt || '')}</b><span>${esc(c.dataset.tip)}</span>`; tip.style.display = 'block';
+    const r = c.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px'; tip.style.top = (r.bottom + h + 12 < innerHeight ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px'; } });
+document.addEventListener('mouseout', e => { const c = e.target.closest('[data-tip]'); if (c && !c.contains(e.relatedTarget)) hideTip(); });
 document.addEventListener('mouseout', e => { const b = e.target.closest('.tipbtn'); if (b && canHover.matches && !b.contains(e.relatedTarget)) hideTip(); });
 document.addEventListener('focusin', e => { const b = e.target.closest('.tipbtn'); if (b && e.target.matches(':focus-visible')) showTip(b); });
 document.addEventListener('focusout', e => { if (e.target.closest('.tipbtn')) hideTip(); });
@@ -743,6 +786,7 @@ $('side').addEventListener('click', e => {
   if (t.closest('#sx')) return deselect();
   const cp = t.closest('[data-copy]'); if (cp) { try { navigator.clipboard.writeText(cp.dataset.copy); toast('Copied'); } catch { toast('Copy failed'); } return; }
   const g = t.closest('[data-goto]'); if (g) return focusKey(g.dataset.goto, true);
+  const rv = t.closest('[data-reveal]'); if (rv) { revealCommit(rv.dataset.reveal); return; }
   const l = t.closest('[data-lane]'); if (l) { const ln = L.lanes.find(x => x.name === l.dataset.lane); if (ln) focusKey(ln.headItem.key, true); return; }
   const k = t.closest('[data-key]'); if (k) focusKey(k.dataset.key, true);
 });
@@ -1003,8 +1047,12 @@ async function repoInfo(R) { const m = infoMemo[R]; if (m && Date.now() - m.t < 
 async function buildGraph(x, max, hx = 0) {
   const o = x.owner, n = x.repo, R = `/repos/${o}/${n}`, info = await repoInfo(R), base = info.default_branch, hasTok = authed();
   const prRaw = await ghReq(`${R}/pulls?state=all&sort=updated&direction=desc&per_page=100`).catch(e => { noRate(e); return []; }), prs = {};
-  for (const p of prRaw) if (!(p.head.repo && p.head.repo.full_name !== info.full_name) && !prs[p.head.ref])
-    prs[p.head.ref] = { number: p.number, state: p.merged_at ? 'MERGED' : p.state.toUpperCase(), title: p.title, url: p.html_url, draft: !!p.draft, mergeable: null, review: null, author: p.user && p.user.login, created: p.created_at, base: p.base.ref };
+  const prByCommit = {};  // merged pull requests by their commits: they name branches that were deleted
+  const mkPr = p => ({ number: p.number, state: p.merged_at ? 'MERGED' : p.state.toUpperCase(), title: p.title, url: p.html_url, draft: !!p.draft, mergeable: null, review: null, author: p.user && p.user.login, created: p.created_at, base: p.base.ref });
+  for (const p of prRaw) if (!(p.head.repo && p.head.repo.full_name !== info.full_name)) {
+    if (!prs[p.head.ref]) prs[p.head.ref] = mkPr(p);
+    if (p.merged_at) [p.merge_commit_sha, p.head.sha].filter(Boolean).forEach(h => { prByCommit[h] ||= { ref: p.head.ref, pr: mkPr(p) }; });
+  }
   // which branches (most recently updated first) + CI. GraphQL needs a token; without one, PR branches first, then the rest.
   let names, total, ciBy = {}, gq = null; const tipOf = {};
   if (hasTok) { try { gq = await ghGql(GQL_LIST, { o, n, b: Math.min(100, max + 2), base }); } catch (e) { noRate(e); } }
@@ -1045,11 +1093,16 @@ async function buildGraph(x, max, hx = 0) {
   for (const m of bchain) if (m.parents.length > 1) for (const p of m.parents.slice(1)) {
     if (onLine.has(p) || taken.has(p) || !baseNodes[p]) continue;
     const side = []; let h = p;
-    while (h && baseNodes[h] && !onLine.has(h) && !taken.has(h) && side.length < START) { side.push(baseNodes[h]); taken.add(h); h = baseNodes[h].parents[0]; }
+    while (h && baseNodes[h] && !onLine.has(h) && !taken.has(h) && side.length < 300) { side.push(baseNodes[h]); taken.add(h); h = baseNodes[h].parents[0]; }
     if (!side.length) continue;
-    const nm = (/from\s+(\S+)/.exec(m.msg) || /[Mm]erge branch '([^']+)'/.exec(m.msg) || [])[1], short = nm ? nm.split('/').slice(-1)[0] : 'merged work';
-    sideLanes.push({ name: lanes.some(l => l.name === short) || sideLanes.some(l => l.name === short) ? short + ' (merged)' : short, is_base: false, virtual: true, mergedIn: m.hash, tip: p, mb: side[side.length - 1].parents[0] || null, ahead: 0, behind: 0, more: 0, upstream: 'GitHub', track: '', conflict: { state: 'merged', files: [], changed: [], source: 'files' }, ci: null, pr: null, commits: side });
-    side.forEach(c => { sideAt[c.hash] = true; });
+    const named = t => (/from\s+(\S+)/.exec(t) || /[Mm]erge branch '([^']+)'/.exec(t) || [])[1];  // the merge message names the branch; if it does not ("Merge remote-tracking branch"), the merged commit itself may
+    const hit = [p, m.hash, side[0].hash].map(h => prByCommit[h]).find(Boolean);  // a merged pull request knows the branch name, even after the branch is deleted
+    const nm = named(m.msg) || named(side[0].msg), short = hit ? hit.ref : nm ? nm.split('/').slice(-1)[0] : 'merged work';
+    // A branch that still exists and ends exactly here IS this merged work. Give it the commits, so one branch never shows up twice.
+    const twins = lanes.filter(l => !l.is_base && !l.virtual && !l.ahead && l.tip === p && !l.commits.length), twin = twins.find(l => l.name === short) || twins[0];
+    if (twin) { twin.commits = side; twin.mb = side[side.length - 1].parents[0] || null; twin.mergedIn = m.hash; side.slice(0, START).forEach(c => { sideAt[c.hash] = true; }); if (hit && !twin.pr) twin.pr = hit.pr; continue; }
+    sideLanes.push({ name: lanes.some(l => l.name === short) || sideLanes.some(l => l.name === short) ? short + ' (merged)' : short, is_base: false, virtual: true, mergedIn: m.hash, tip: p, mb: side[side.length - 1].parents[0] || null, ahead: 0, behind: 0, more: 0, upstream: 'GitHub', track: '', conflict: { state: 'merged', files: [], changed: [], source: 'files' }, ci: null, pr: hit ? hit.pr : null, commits: side });
+    side.slice(0, START).forEach(c => { sideAt[c.hash] = true; });
   }
   lanes.splice(1, 0, ...sideLanes);
   for (const l of lanes) if (!l.is_base) l.mb_main = l.virtual || !sideAt[l.mb] ? attachNodes(l.mb, bchain, baseNodes) : l.mb;
