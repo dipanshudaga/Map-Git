@@ -133,6 +133,7 @@
   #side .body { padding:0 var(--s5) var(--s5) }
   #side .meta { display:flex; align-items:center; gap:var(--s2); margin-top:var(--s4); color:var(--muted); font:var(--t-body) } #side .meta b { color:var(--ink); font:var(--t-label) } #side .meta span:last-child::before { content:"·"; margin-right:var(--s2) }
   #side .chips { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s2); margin-top:var(--s3) } #side .chips .pill { height:24px; padding:0 var(--s3) } #side .arrow { color:var(--faint); display:inline-flex; transform:rotate(-90deg) }
+  #side .plain { margin-top:var(--s3); color:var(--ink-2) }
   #side .rows { margin-top:var(--s4); padding:var(--s1) var(--s4); border-radius:var(--r2); box-shadow:0 0 0 1px var(--line) inset } #side .r { display:flex; justify-content:space-between; align-items:center; gap:var(--s4); min-height:40px; padding:var(--s1) 0; border-top:1px solid var(--line) } #side .r:first-child { border-top:0 }
   #side .r code { font-size:14px; line-height:20px }
   #side .r.w { flex-direction:column; align-items:flex-start; gap:var(--s2); padding:var(--s3) 0 } #side .r.w > div { justify-content:flex-start; text-align:left }
@@ -349,7 +350,8 @@ function layout() {
   lanes = lanes.filter(ln => ln.is_base || (ln.virtual ? !flt.merged : (
     (!flt.stale || ageDays(ln) < flt.stale) && (!flt.merged || ln.ahead > 0) && (!flt.pr || (ln.pr && ln.pr.state === 'OPEN')) && (!flt.conf || (ln.conflict && (ln.conflict.state === 'conflict' || ln.conflict.state === 'possible'))) && ++kept <= flt.max)));
   const mi = {}; data.lanes[0].commits.forEach((c, i) => { mi[c.hash] = i; });  // merged columns sit nearest main, the newest merge first, so lines cross less
-  const rank = l => { const k = laneOrder.indexOf(l.name); return k >= 0 ? k : l.mergedIn && l.mergedIn in mi ? 1e5 + mi[l.mergedIn] : 1e6 + l.i; };
+  const dflt = l => l.mergedIn && l.mergedIn in mi ? 1e5 + mi[l.mergedIn] : 1e6 + l.i, defaultNames = lanes.slice(1).sort((a, b) => dflt(a) - dflt(b)).map(l => l.name);
+  const rank = l => { const k = laneOrder.indexOf(l.name); return k >= 0 ? k : dflt(l); };
   lanes = [lanes[0], ...lanes.slice(1).sort((a, b) => rank(a) - rank(b))];  // main line stays first; the rest follow the order you dragged them into
   lanes.forEach((ln, i) => { ln.mbm = ln.mb_main || ln.mb; ln.col = i; ln.color = ln.is_base ? BASE_COLOR : COLORS[(ln.i - 1) % COLORS.length]; ln.x = i * COLX; ln.stale = !ln.is_base && flt.staleMark && ageDays(ln) > 90; });
   const base = lanes[0], baseIdx = Object.fromEntries(base.commits.map((c, i) => [c.hash, i]));
@@ -460,7 +462,7 @@ function layout() {
     let below = lowest + CH + GAP + (ln.moreItem ? 40 + GAP : 0);  // the pills under the main branch stack: show more, then hide
     ln.lessItem = ln.is_base && ln.tailOpen ? add('less:' + ln.name, 'more', ln, ln.x, below, CW, 40) : null; 
   }
-  return { lanes, items, forkOf, at: Object.fromEntries(Object.values(items).filter(i => i.kind === 'card').map(i => [i.c.hash, i])), row };
+  return { defaultNames, lanes, items, forkOf, at: Object.fromEntries(Object.values(items).filter(i => i.kind === 'card').map(i => [i.c.hash, i])), row };
 }
 
 // effective position = layout + lane offset + own offset
@@ -521,8 +523,7 @@ function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
     if (!ln.is_base && ln.ahead) chips += st === 'conflict' ? `<span class="chip bad">${ico('alert', 'xs')}Conflict</span>` : st === 'possible' ? `<span class="chip warn">${ico('alert', 'xs')}May conflict</span>` : st === 'clean' ? `<span class="chip ok">${ico('check', 'xs')}Clean</span>` : '';
     if (ln.ci) chips += `<span class="chip ${CI[ln.ci.state][2]}">${ico(CI[ln.ci.state][0], 'xs')}CI</span>`;
     if (!ln.is_base && ageDays(ln) > 60) chips += `<span class="chip">${ico('clock', 'xs')}${Math.round(ageDays(ln) / 30)}mo</span>`;
-    const headTip = ln.is_base ? 'The main branch. Finished work is merged into it.' : ln.virtual ? (ln.prInfo ? `Pull request #${ln.prInfo.number} was merged on GitHub.` : 'This work was merged into main.') + ' The branch is deleted, but its commits stay in main.' : ln.ahead === 0 && (mergeOf(ln) || (ln.pr && ln.pr.state === 'MERGED')) ? 'All of this branch is already in main. The branch still exists.' : ln.ahead === 0 ? 'This branch has no commits of its own.' : `${ln.ahead} commit${ln.ahead > 1 ? 's' : ''} not in ${data.base} yet` + (ln.behind ? `, and ${data.base} has ${ln.behind} newer.` : '.');
-    const hd = mk(ln.headItem, `head${ageDays(ln) > 180 && !ln.is_base ? ' stale' : ''}${ln.virtual ? ' deleted' : ''}`, `<div class="n">${ico(ln.prInfo ? 'pr' : 'branch')}<span title="${esc(ln.prInfo ? 'Pull request #' + ln.prInfo.number + ' ' + ln.prInfo.title : ln.name)}">${esc(ln.prInfo ? 'PR #' + ln.prInfo.number + ' · ' + ln.prInfo.title : ln.name)}</span></div><div class="sub">${chips}</div><div class="when">${ln.commits.length ? (ln.is_base ? 'Latest ' : 'Updated ') + esc(fmtDate(ln.commits[0].date)) : ''}</div>`); hd.style.background = ln.color; hd.dataset.tip = headTip; hd.dataset.tipt = ln.virtual ? 'Merged work' : ln.is_base ? 'Main branch' : 'Branch';
+    mk(ln.headItem, `head${ageDays(ln) > 180 && !ln.is_base ? ' stale' : ''}${ln.virtual ? ' deleted' : ''}`, `<div class="n">${ico(ln.prInfo ? 'pr' : 'branch')}<span title="${esc(ln.prInfo ? 'Pull request #' + ln.prInfo.number + ' ' + ln.prInfo.title : ln.name)}">${esc(ln.prInfo ? 'PR #' + ln.prInfo.number + ' · ' + ln.prInfo.title : ln.name)}</span></div><div class="sub">${chips}</div><div class="when">${ln.commits.length ? (ln.is_base ? 'Latest ' : 'Updated ') + esc(fmtDate(ln.commits[0].date)) : ''}</div>`).style.background = ln.color;
     if (ln.prItem) {
       const pr = ln.pr, sk = prState(pr), col = PRS[sk] || PRS.OPEN;
       const m = pr.state !== 'OPEN' ? '' : st === 'conflict' || pr.mergeable === 'CONFLICTING' ? '<span class="pill" style="background:var(--badbg);color:var(--bad)">' + ico('alert', 'xs') + 'Conflict</span>' : st === 'possible' ? '<span class="pill" style="background:var(--warnbg);color:var(--warn)">' + ico('alert', 'xs') + 'May conflict</span>' : '<span class="pill" style="background:var(--okbg);color:var(--ok)">' + ico('check', 'xs') + 'Can merge</span>';
@@ -532,13 +533,11 @@ function draw(animate = true, anchorKey = null, mutate = null, reveal = false) {
   for (const it of Object.values(L.items)) if (it.kind === 'card') {
     const c = it.c, ln = it.ln, merge = c.parents.length > 1, fork = L.forkOf[c.hash];
     const tag = merge ? `<span class="tag" style="color:${ln.color}" title="${/^Merge pull request/.test(c.msg) ? 'A pull request was merged here' : 'Two lines of work were joined here'}">${/^Merge pull request/.test(c.msg) ? 'PR MERGE' : 'MERGE'}</span>` : fork ? `<span class="tag" style="color:#475569" title="${esc(fork.join(', '))} started from this commit">SPLIT</span>` : '';
-    const tipText = merge ? plainMerge(c, data.base) : fork ? fork.join(', ') + (fork.length > 1 ? ' started' : ' started') + ' from this commit.' : '';
     const d = mk(it, `card${merge ? ' merge' : ''}${fresh.has(c.hash) ? ' fresh' : ''}`,
       `${tagsHtml(c.hash)}<div class="r1"><span class="h" style="color:${ln.color}">${esc(c.short)}</span><span>${it === ln.tip ? ciDot(ln.ci) : ''}${esc(fmtDate(c.date))}</span></div><div class="m">${esc(c.msg)}</div>
        <div class="a"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b>${tag}</div>`);
     const t = tint(ln.color, merge ? .28 : .14);
     d.style.background = `linear-gradient(${t},${t}),#fff`; d.style.borderColor = ln.color;
-    if (tipText) { d.dataset.tip = tipText; d.dataset.tipt = merge ? (/^Merge pull request/.test(c.msg) ? 'PR MERGE' : 'MERGE') : 'SPLIT'; } else { delete d.dataset.tip; delete d.dataset.tipt; }
   }
   for (const ln of L.lanes) for (const it of ln.gaps || []) {
     const g = it.gap, d = mk(it, 'more', `${ico('chevron-down')}Show ${g.count} hidden commit${g.count > 1 ? 's' : ''}`); d.style.borderColor = d.style.color = ln.color; d.onclick = () => toggleGap(g);
@@ -577,7 +576,10 @@ function rounded(p, r) {
   return d + ` L${p[p.length - 1][0]} ${p[p.length - 1][1]}`;
 }
 function drawEdges() {
-  $('tTidy').style.display = Object.keys(offs).length || laneOrder.length ? '' : 'none';  // only useful after you moved something
+  // Tidy up shows only when something on THIS map is really out of place: a moved card or column, or columns in an order you chose.
+  const movedItems = Object.entries(offs).some(([k, v]) => (k.startsWith('L:') ? L.lanes.some(l => 'L:' + l.name === k) : k in L.items) && v && (v[0] || v[1]));
+  const reordered = L.lanes.slice(1).map(l => l.name).join('\u0001') !== L.defaultNames.join('\u0001');
+  $('tTidy').style.display = movedItems || reordered ? '' : 'none';
   let out = '';
   const vert = (a, b, color, w, dash) => {  // from bottom-center of a to top-center of b (a is the lower/older one)
     const A = rectOf(a), B = rectOf(b), x1 = A.x + A.w / 2, y1 = A.y, x2 = B.x + B.w / 2, y2 = B.y + B.h;
@@ -711,7 +713,7 @@ function inspect(key) {
     const chips = laneChip(ln) + (merge ? `<span class="pill" style="background:var(--fill);color:var(--ink-2)">Merge${info('merge')}</span>` : '')
       + (tg || []).map(t => `<span class="pill" style="background:var(--fill);color:var(--ink-2)">${ico('tag', 'xs')}${esc(t)}</span>`).join('');
     body = `<div class="meta"><span class="av" style="background:${avColor(c.author)}">${esc(initials(c.author))}</span><b>${esc(c.author)}</b><span title="${esc(fmtDate(c.date))}">${ago(c.ct)}</span></div>
-      <div class="chips">${chips}</div>
+      <div class="chips">${chips}</div>${merge ? `<p class="plain">${esc(plainMerge(c, base))}</p>` : ''}
       <div class="rows">${row('Date', esc(fmtDate(c.date)))}${row('Commit ID' , `<code class="idc" data-copy="${esc(c.hash)}" title="Click to copy the full ID">${esc(c.short)}</code>`, 'hash')}${row(merge ? 'Joins' : 'Built on', parents, 'parent')}${row('Branches from here', exact.map(chipOf).join(''), 'split', exact.length > 1)}${row('Branched from merged work', inside.map(chipOf).join(''), null, true)}${row('Merged in', mergedHere(c))}</div>
       ${it === ln.tip ? ciStatus(ln.ci) : ''}`;
   } else if (it.kind === 'pr') {
@@ -728,10 +730,12 @@ function inspect(key) {
     const pi = ln.prInfo, mainSet = new Set(data.lanes[0].commits.map(c => c.hash)), only = ln.commits.length === 1 ? ln.commits[0] : null;
     const nothing = only && only.parents.length > 1 && only.parents.every(p => mainSet.has(p)), carried = nothing ? only.parents[only.parents.length - 1] : null;
     band = band_(ln.color, 'Merged work' + info('merge'), pi ? `PR #${pi.number} · ${pi.title}` : ln.name);
-    const what = (pi ? `Pull request #${pi.number} “${esc(pi.title)}” was merged on GitHub. The branch (${esc(ln.name)}) is deleted, so this column is named after the pull request.` : 'The branch is deleted, so its name is unknown.')
-      + (nothing ? ` This merge added no new commits: the work it brings in (${cref(carried)}) was already in <b>${esc(base)}</b>.` : '') + ` It joined <b>${esc(base)}</b> at ${cref(ln.mergedIn)}.`;
-    body = `<div class="rows">${pi ? row('Pull request', `<a class="link" href="${esc(pi.url)}" target="_blank" rel="noopener">#${pi.number}${ico('external', 'xs')}</a> ${prPill(pi)}`, 'pr') : ''}${row('Merged in', cref(ln.mergedIn))}${row('Split from', ln.mb ? cref(ln.mb) : '')}${row('Commits', nothing ? '1 · the merge only' : String(ln.commits.length))}${nothing ? row('Already in main', cref(carried)) : ''}${ln.commits.length ? row('Last commit', ago(ln.commits[0].ct)) : ''}</div>
-      ${st('info', 'info', 'What is this?', what)}`;
+    const lines = [];
+    if (pi) lines.push(`GitHub merged pull request #${pi.number} on ${esc(fmtDate(only ? only.date : ln.commits[0].date))}. The branch was deleted afterwards.`);
+    else lines.push('This work was merged. The branch was deleted afterwards.');
+    if (nothing) lines.push(`It added nothing new: your work (${cref(carried)}) was already in <b>${esc(base)}</b>.`);
+    body = `<div class="rows">${pi ? row('Pull request', `<a class="link" href="${esc(pi.url)}" target="_blank" rel="noopener">#${pi.number}${ico('external', 'xs')}</a>`) : ''}${row('Joined main at', cref(ln.mergedIn))}${row('Started from', ln.mb ? cref(ln.mb) : '')}</div>
+      ${st('info', 'info', 'What happened', lines.join('<br>'))}`;
   } else {
     const cf = ln.conflict, tot = ln.ahead + ln.behind;
     band = band_(ln.color, (ln.is_base ? 'Main branch' : 'Branch') + info(ln.is_base ? 'main' : 'branch'), ln.name);
@@ -766,11 +770,7 @@ const showTip = b => {
 // The explanation shows while the pointer is over the icon (or the icon has keyboard focus). On touch screens, where there is no hover, a tap opens it.
 const canHover = matchMedia('(hover: hover)');
 document.addEventListener('mouseover', e => { const b = e.target.closest('.tipbtn'); if (b && canHover.matches) showTip(b);
-  const c = !b && e.target.closest('[data-tip]'); if (c && canHover.matches && !c.contains(e.relatedTarget)) {  // a plain sentence on heads and on SPLIT and MERGE cards
-    const tip = $('tip'); hideTip(); tip.innerHTML = `<b>${esc(c.dataset.tipt || '')}</b><span>${esc(c.dataset.tip)}</span>`; tip.style.display = 'block';
-    const r = c.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
-    tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px'; tip.style.top = (r.bottom + h + 12 < innerHeight ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px'; } });
-document.addEventListener('mouseout', e => { const c = e.target.closest('[data-tip]'); if (c && !c.contains(e.relatedTarget)) hideTip(); });
+});
 document.addEventListener('mouseout', e => { const b = e.target.closest('.tipbtn'); if (b && canHover.matches && !b.contains(e.relatedTarget)) hideTip(); });
 document.addEventListener('focusin', e => { const b = e.target.closest('.tipbtn'); if (b && e.target.matches(':focus-visible')) showTip(b); });
 document.addEventListener('focusout', e => { if (e.target.closest('.tipbtn')) hideTip(); });
